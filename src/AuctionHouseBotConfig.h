@@ -75,7 +75,7 @@ public:
         return _maxItems;
     }
 
-    void SetPercentages(std::array<uint32, AHB_MAX_QUALITY>& percentages);
+    void SetPercentages(std::array<float, AHB_MAX_QUALITY>& percentages);
 
     uint32 GetPercentages(uint32 color);
 
@@ -161,7 +161,7 @@ private:
     Minutes _buyerBiddingInterval{ 0min };
     uint32 _buyerBidsPerInterval{ 0 };
 
-    std::array<uint32, AHB_MAX_QUALITY> _itemsPercent{};
+    std::array<float, AHB_MAX_QUALITY> _itemsPercent{};
     std::array<uint32, AHB_MAX_QUALITY> _itemsPercentages{};
     std::array<uint32, AHB_DEFAULT_QUALITY_SIZE> _buyerPrice{};
     std::array<uint32, AHB_DEFAULT_QUALITY_SIZE> _maxStack{};

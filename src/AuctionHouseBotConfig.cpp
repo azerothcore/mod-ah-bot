@@ -53,18 +53,18 @@ uint32 AHBConfig::GetMinItems()
     return _minItems;
 }
 
-void AHBConfig::SetPercentages(std::array<uint32, AHB_MAX_QUALITY>& percentages)
+void AHBConfig::SetPercentages(std::array<float, AHB_MAX_QUALITY>& percentages)
 {
-    uint32 totalPercent = std::accumulate(percentages.begin(), percentages.end(), 0);
+    float totalPercent = std::accumulate(percentages.begin(), percentages.end(), 0.f);
 
     if (totalPercent == 0)
     {
         _maxItems = 0;
     }
-    else if (totalPercent != 100)
+    else if (std::fabs(totalPercent-100) > 0.1) // float approximate equal
     {
         // re-normalize all percentages
-        const float fixMultiplier = 100.f / static_cast<float>(totalPercent);
+        const float fixMultiplier = 100.f / totalPercent;
 
         for (auto& it : percentages)
             it *= fixMultiplier;
@@ -225,12 +225,13 @@ void AHBConfig::CalculatePercents()
     for (size_t i = 0; i < AHB_MAX_QUALITY; i++)
     {
         double itemPercent = _itemsPercent[i];
-        _itemsPercentages[i] = uint32(itemPercent / 100 * _maxItems);
+        _itemsPercentages[i] = uint32(std::ceil(itemPercent / 100 * _maxItems));
     }
 
     uint32 totalPercent = std::accumulate(_itemsPercentages.begin(), _itemsPercentages.end(), 0);
     int32 diff = (_maxItems - totalPercent);
 
+    // If we don't match the expected maxItems, fill it up using Normal/Uncommon items
     if (diff < 0)
     {
         if (_itemsPercentages[AHB_ITEM_QUALITY_NORMAL] - diff > 0)
@@ -238,7 +239,7 @@ void AHBConfig::CalculatePercents()
         else if (_itemsPercentages[AHB_ITEM_QUALITY_UNCOMMON] - diff > 0)
             _itemsPercentages[AHB_ITEM_QUALITY_UNCOMMON] -= diff;
     }
-    else if (diff < 0)
+    else if (diff > 0)
         _itemsPercentages[AHB_ITEM_QUALITY_NORMAL] += diff;
 }
 

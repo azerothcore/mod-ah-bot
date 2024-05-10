@@ -712,22 +712,22 @@ void AuctionHouseBot::Commands(uint32 command, uint32 ahMapID, uint32 col, char*
             char * param12 = strtok(NULL, " ");
             char * param13 = strtok(NULL, " ");
             char * param14 = strtok(NULL, " ");
-            uint32 greytg = (uint32) strtoul(param1, NULL, 0);
-            uint32 whitetg = (uint32) strtoul(param2, NULL, 0);
-            uint32 greentg = (uint32) strtoul(param3, NULL, 0);
-            uint32 bluetg = (uint32) strtoul(param4, NULL, 0);
-            uint32 purpletg = (uint32) strtoul(param5, NULL, 0);
-            uint32 orangetg = (uint32) strtoul(param6, NULL, 0);
-            uint32 yellowtg = (uint32) strtoul(param7, NULL, 0);
-            uint32 greyi = (uint32) strtoul(param8, NULL, 0);
-            uint32 whitei = (uint32) strtoul(param9, NULL, 0);
-            uint32 greeni = (uint32) strtoul(param10, NULL, 0);
-            uint32 bluei = (uint32) strtoul(param11, NULL, 0);
-            uint32 purplei = (uint32) strtoul(param12, NULL, 0);
-            uint32 orangei = (uint32) strtoul(param13, NULL, 0);
-            uint32 yellowi = (uint32) strtoul(param14, NULL, 0);
+            float greytg =  strtof(param1, NULL);
+            float whitetg = strtof(param2, NULL);
+            float greentg = strtof(param3, NULL);
+            float bluetg = strtof(param4, NULL);
+            float purpletg = strtof(param5, NULL);
+            float orangetg = strtof(param6, NULL);
+            float yellowtg = strtof(param7, NULL);
+            float greyi = strtof(param8, NULL);
+            float whitei = strtof(param9, NULL);
+            float greeni = strtof(param10, NULL);
+            float bluei = strtof(param11, NULL);
+            float purplei = strtof(param12, NULL);
+            float orangei = strtof(param13, NULL);
+            float yellowi = strtof(param14, NULL);
 
-            std::array<uint32, AHB_MAX_QUALITY> percentages =
+            std::array<float, AHB_MAX_QUALITY> percentages =
             {
                 greytg, whitetg, greentg, bluetg, purpletg, orangetg, yellowtg, greyi, whitei, greeni, bluei, purplei, orangei, yellowi
             };
@@ -853,8 +853,8 @@ void AuctionHouseBot::LoadValues(AHBConfig* config)
             maxstackgrey, maxstackwhite, maxstackgreen, maxstackblue, maxstackpurple, maxstackorange, maxstackyellow,
             auctionName]
             = result->FetchTuple<uint32, uint32,
-            uint32, uint32, uint32, uint32, uint32, uint32, uint32,
-            uint32, uint32, uint32, uint32, uint32, uint32, uint32,
+            float, float, float, float, float, float, float,
+            float, float, float, float, float, float, float,
             uint32, uint32, uint32, uint32, uint32, uint32, uint32,
             uint32, uint32, uint32, uint32, uint32, uint32, uint32,
             uint32, uint32, uint32, uint32, uint32, uint32, uint32,
@@ -866,10 +866,10 @@ void AuctionHouseBot::LoadValues(AHBConfig* config)
 		config->SetMinItems(minitems);
 		config->SetMaxItems(maxitems);
 
-        std::array<uint32, AHB_MAX_QUALITY> percetages = { percentgreytradegoods, percentwhitetradegoods, percentgreentradegoods, percentbluetradegoods, percentpurpletradegoods, percentorangetradegoods, percentyellowtradegoods,
+        std::array<float, AHB_MAX_QUALITY> percentages = { percentgreytradegoods, percentwhitetradegoods, percentgreentradegoods, percentbluetradegoods, percentpurpletradegoods, percentorangetradegoods, percentyellowtradegoods,
             percentgreyitems, percentwhiteitems, percentgreenitems, percentblueitems, percentpurpleitems, percentorangeitems, percentyellowitems };
 
-        config->SetPercentages(percetages);
+        config->SetPercentages(percentages);
 
         // Load min and max prices
 		config->SetMinPrice(ITEM_QUALITY_POOR, minpricegrey);

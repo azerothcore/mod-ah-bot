@@ -1,0 +1,15 @@
+ALTER TABLE `mod_auctionhousebot` 
+MODIFY COLUMN `percentgreytradegoods` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the Grey Trade Goods auction items' AFTER `maxitems`,
+MODIFY COLUMN `percentwhitetradegoods` float(11) NULL DEFAULT 27 COMMENT 'Sets the percentage of the White Trade Goods auction items' AFTER `percentgreytradegoods`,
+MODIFY COLUMN `percentgreentradegoods` float(11) NULL DEFAULT 12 COMMENT 'Sets the percentage of the Green Trade Goods auction items' AFTER `percentwhitetradegoods`,
+MODIFY COLUMN `percentbluetradegoods` float(11) NULL DEFAULT 10 COMMENT 'Sets the percentage of the Blue Trade Goods auction items' AFTER `percentgreentradegoods`,
+MODIFY COLUMN `percentpurpletradegoods` float(11) NULL DEFAULT 1 COMMENT 'Sets the percentage of the Purple Trade Goods auction items' AFTER `percentbluetradegoods`,
+MODIFY COLUMN `percentorangetradegoods` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the Orange Trade Goods auction items' AFTER `percentpurpletradegoods`,
+MODIFY COLUMN `percentyellowtradegoods` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the Yellow Trade Goods auction items' AFTER `percentorangetradegoods`,
+MODIFY COLUMN `percentgreyitems` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the non trade Grey auction items' AFTER `percentyellowtradegoods`,
+MODIFY COLUMN `percentwhiteitems` float(11) NULL DEFAULT 10 COMMENT 'Sets the percentage of the non trade White auction items' AFTER `percentgreyitems`,
+MODIFY COLUMN `percentgreenitems` float(11) NULL DEFAULT 30 COMMENT 'Sets the percentage of the non trade Green auction items' AFTER `percentwhiteitems`,
+MODIFY COLUMN `percentblueitems` float(11) NULL DEFAULT 8 COMMENT 'Sets the percentage of the non trade Blue auction items' AFTER `percentgreenitems`,
+MODIFY COLUMN `percentpurpleitems` float(11) NULL DEFAULT 2 COMMENT 'Sets the percentage of the non trade Purple auction items' AFTER `percentblueitems`,
+MODIFY COLUMN `percentorangeitems` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the non trade Orange auction items' AFTER `percentpurpleitems`,
+MODIFY COLUMN `percentyellowitems` float(11) NULL DEFAULT 0 COMMENT 'Sets the percentage of the non trade Yellow auction items' AFTER `percentorangeitems`;
