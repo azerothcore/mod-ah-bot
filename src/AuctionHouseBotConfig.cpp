@@ -2590,34 +2590,6 @@ void AHBConfig::InitializeBins()
         }
 
         //
-        // Exclude items with no possible price
-        //
-
-        if (SellMethod)
-        {
-            if (itr->second.BuyPrice == 0)
-            {
-                continue;
-            }
-        }
-        else
-        {
-            if (itr->second.SellPrice == 0)
-            {
-                continue;
-            }
-        }
-
-        //
-        // Exclude items with no costs associated, in any case
-        //
-
-        if ((itr->second.BuyPrice == 0) && (itr->second.SellPrice == 0))
-        {
-            continue;
-        }
-
-        //
         // Exlude items superior to the limit quality
         //
 

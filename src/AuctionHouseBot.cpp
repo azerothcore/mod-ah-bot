@@ -870,6 +870,26 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             }
         }
 
+        //
+        // If the buyout price is still zero, determine a random one using the item level
+        //
+
+        if (buyoutPrice == 0)
+        {
+            buyoutPrice = urand(prototype->ItemLevel, prototype->ItemLevel + 10) * 10;
+
+            if (buyoutPrice <= 0)
+            {
+                if (config->DebugOutSeller)
+                {
+                    LOG_ERROR("module", "AHBot [{}]: Could not determine a price for item {} of quality {} (min={}, max={})", _id, itemID, prototype->Quality, config->GetMinPrice(prototype->Quality), config->GetMaxPrice(prototype->Quality));
+                }
+
+                item->RemoveFromUpdateQueueOf(AHBplayer);
+                continue;
+            }
+        }
+
         buyoutPrice = buyoutPrice * urand(config->GetMinPrice(prototype->Quality), config->GetMaxPrice(prototype->Quality));
         buyoutPrice = buyoutPrice / 100;
 
