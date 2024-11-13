@@ -124,8 +124,6 @@ void AHBot_WorldScript::OnBeforeConfigLoad(bool reload)
 
 void AHBot_WorldScript::OnStartup()
 {
-    LOG_INFO("server.loading", "Initialize AuctionHouseBot...");
-
     //
     // Initialize the configuration (done only once at startup)
     //
