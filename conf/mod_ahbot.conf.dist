@@ -145,6 +145,10 @@ AuctionHouseBot.ElapsingTimeClass = 1
 #        Include misc. Trade Goods.
 #    Default 0 (False)
 #
+#    AuctionHouseBot.ProfessionItems
+#        Include items that are necessary for professions
+#    Default 0 (False)
+#
 #    AuctionHouseBot.Bonding_types
 #        Indicates which bonding types to allow seller to put up for auction
 #            No_Bind
@@ -205,6 +209,7 @@ AuctionHouseBot.LootItems = 1
 AuctionHouseBot.LootTradeGoods = 1
 AuctionHouseBot.OtherItems = 0
 AuctionHouseBot.OtherTradeGoods = 0
+AuctionHouseBot.ProfessionItems = 0
 AuctionHouseBot.No_Bind = 1
 AuctionHouseBot.Bind_When_Picked_Up = 0
 AuctionHouseBot.Bind_When_Equipped = 1

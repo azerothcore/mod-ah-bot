@@ -211,6 +211,7 @@ AHBConfig::AHBConfig(uint32 ahid, AHBConfig* conf)
     Vendor_TGs                     = conf->Vendor_TGs;
     Loot_TGs                       = conf->Loot_TGs;
     Other_TGs                      = conf->Other_TGs;
+    Profession_Items               = conf->Profession_Items;
     No_Bind                        = conf->No_Bind;
     Bind_When_Picked_Up            = conf->Bind_When_Picked_Up;
     Bind_When_Equipped             = conf->Bind_When_Equipped;
@@ -519,6 +520,7 @@ void AHBConfig::Reset()
     Vendor_TGs                     = false;
     Loot_TGs                       = true;
     Other_TGs                      = false;
+    Profession_Items               = false;
 
     No_Bind                        = true;
     Bind_When_Picked_Up            = true;
@@ -2057,6 +2059,7 @@ void AHBConfig::InitializeFromFile()
     Vendor_TGs                     = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.VendorTradeGoods" , false);
     Loot_TGs                       = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.LootTradeGoods"   , true);
     Other_TGs                      = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.OtherTradeGoods"  , false);
+    Profession_Items               = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.ProfessionItems"  , false);
 
     //
     // Flags: items binding
@@ -2541,6 +2544,30 @@ void AHBConfig::InitializeFromSql(std::set<uint32> botsIds)
         if (DebugOutConfig)
         {
             LOG_ERROR("module", "AuctionHouseBot: failed to retrieve loot items");
+        }
+    }
+
+    //
+    // Include profession items
+    //
+
+    if (Profession_Items)
+    {
+        itemsResults = WorldDatabase.Query(
+            "SELECT item FROM auctionhousebot_professionItems");
+
+        if (itemsResults)
+        {
+            do
+            {
+                Field* fields = itemsResults->Fetch();
+                uint32 item   = fields[0].Get<uint32>();
+                
+                if(LootItems.find(item) == LootItems.end())
+                {
+                    LootItems.insert(fields[0].Get<uint32>());
+                }
+            } while (itemsResults->NextRow());
         }
     }
 

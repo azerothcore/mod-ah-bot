@@ -197,6 +197,7 @@ public:
     bool   Vendor_TGs;
     bool   Loot_TGs;
     bool   Other_TGs;
+    bool   Profession_Items;
 
     bool   No_Bind;
     bool   Bind_When_Picked_Up;
