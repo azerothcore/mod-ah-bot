@@ -204,6 +204,7 @@ AHBConfig::AHBConfig(uint32 ahid, AHBConfig* conf)
     BuyMethod                      = conf->BuyMethod;
     SellMethod                     = conf->SellMethod;
     ConsiderOnlyBotAuctions        = conf->ConsiderOnlyBotAuctions;
+    SellZeroPriceItems             = conf->SellZeroPriceItems;
     ItemsPerCycle                  = conf->ItemsPerCycle;
     Vendor_Items                   = conf->Vendor_Items;
     Loot_Items                     = conf->Loot_Items;
@@ -512,6 +513,7 @@ void AHBConfig::Reset()
     SellMethod                     = false;
     SellAtMarketPrice              = false;
     ConsiderOnlyBotAuctions        = false;
+    SellZeroPriceItems             = false;
     ItemsPerCycle                  = 200;
 
     Vendor_Items                   = false;
@@ -2017,6 +2019,8 @@ uint64 AHBConfig::GetItemPrice(uint32 id)
 
 void AHBConfig::Initialize(std::set<uint32> botsIds)
 {
+    LOG_INFO("module", "Initializing configuration for AH {}...", AHID);
+
     InitializeFromFile();
     InitializeFromSql(botsIds);
     InitializeBins();
@@ -2047,6 +2051,7 @@ void AHBConfig::InitializeFromFile()
     DivisibleStacks                = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.DivisibleStacks"        , false);
     ElapsingTimeClass              = sConfigMgr->GetOption<uint32>("AuctionHouseBot.DuplicatesCount"        , 1);
     ConsiderOnlyBotAuctions        = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.ConsiderOnlyBotAuctions", false);
+    SellZeroPriceItems             = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.SellZeroPriceItems"     , false);
     ItemsPerCycle                  = sConfigMgr->GetOption<uint32>("AuctionHouseBot.ItemsPerCycle"          , 200);
 
     //
@@ -2618,31 +2623,34 @@ void AHBConfig::InitializeBins()
         }
 
         //
-        // Exclude items with no possible price
+        // Exclude items that does not have a price
         //
 
-        if (SellMethod)
+        if (!SellZeroPriceItems)
         {
-            if (itr->second.BuyPrice == 0)
+            if (SellMethod)
+            {
+                if (itr->second.BuyPrice == 0)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                if (itr->second.SellPrice == 0)
+                {
+                    continue;
+                }
+            }
+
+            //
+            // Exclude items with no costs associated, in any case
+            //
+
+            if ((itr->second.BuyPrice == 0) && (itr->second.SellPrice == 0))
             {
                 continue;
             }
-        }
-        else
-        {
-            if (itr->second.SellPrice == 0)
-            {
-                continue;
-            }
-        }
-
-        //
-        // Exclude items with no costs associated, in any case
-        //
-
-        if ((itr->second.BuyPrice == 0) && (itr->second.SellPrice == 0))
-        {
-            continue;
         }
 
         //
@@ -3357,8 +3365,6 @@ void AHBConfig::InitializeBins()
     // Perform reporting and the last check: if no items are disabled or in the whitelist clear the bin making the selling useless
     // 
 
-    LOG_INFO("module", "AHBot: Configuration for ah {}", AHID);
-
     if (SellerWhiteList.size() == 0)
     {
         if (DisableItemStore.size() == 0)
@@ -3385,27 +3391,32 @@ void AHBConfig::InitializeBins()
             return;
         }
 
-        LOG_INFO("module", "AHBot: {} disabled items", uint32(DisableItemStore.size()));
+        LOG_INFO("module", ">> Using all compatible items ({} disabled)", uint32(DisableItemStore.size()));
     }
     else
     {
-        LOG_INFO("module", "AHBot: Using a whitelist of {} items", uint32(SellerWhiteList.size()));
+        LOG_INFO("module", ">> Using a whitelist of {} items", uint32(SellerWhiteList.size()));
     }
 
-    LOG_INFO("module", "AHBot: loaded {} grey   trade goods", uint32(GreyTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} white  trade goods", uint32(WhiteTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} green  trade goods", uint32(GreenTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} blue   trade goods", uint32(BlueTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} purple trade goods", uint32(PurpleTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} orange trade goods", uint32(OrangeTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} yellow trade goods", uint32(YellowTradeGoodsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} grey   items"      , uint32(GreyItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} white  items"      , uint32(WhiteItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} green  items"      , uint32(GreenItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} blue   items"      , uint32(BlueItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} purple items"      , uint32(PurpleItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} orange items"      , uint32(OrangeItemsBin.size()));
-    LOG_INFO("module", "AHBot: loaded {} yellow items"      , uint32(YellowItemsBin.size()));
+    LOG_INFO("module", ">>\tgrey\twhite\tgreen\tblue\tpurple\torange\tyellow", uint32(GreyTradeGoodsBin.size()));
+
+    LOG_INFO("module", ">>\t{}\t{}\t{}\t{}\t{}\t{}\t{}\ttrade goods",
+        uint32(GreyTradeGoodsBin.size()),
+        uint32(WhiteTradeGoodsBin.size()),
+        uint32(GreenTradeGoodsBin.size()),
+        uint32(BlueTradeGoodsBin.size()),
+        uint32(PurpleTradeGoodsBin.size()),
+        uint32(OrangeTradeGoodsBin.size()),
+        uint32(YellowTradeGoodsBin.size()));
+
+    LOG_INFO("module", ">>\t{}\t{}\t{}\t{}\t{}\t{}\t{}\titems\n",
+        uint32(GreyItemsBin.size()),
+        uint32(WhiteItemsBin.size()),
+        uint32(GreenItemsBin.size()),
+        uint32(BlueItemsBin.size()),
+        uint32(PurpleItemsBin.size()),
+        uint32(OrangeItemsBin.size()),
+        uint32(YellowItemsBin.size()));
 }
 
 std::set<uint32> AHBConfig::getCommaSeparatedIntegers(std::string text)
