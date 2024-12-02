@@ -180,8 +180,8 @@ public:
 
     bool   AHBSeller;
     bool   AHBBuyer;
-    bool   BuyMethod;
-    bool   SellMethod;
+    bool   UseBuyPriceForBuyer;
+    bool   UseBuyPriceForSeller;
     bool   SellAtMarketPrice;
     uint32 MarketResetThreshold;
     bool   ConsiderOnlyBotAuctions;
