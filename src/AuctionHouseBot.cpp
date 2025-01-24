@@ -171,7 +171,7 @@ uint32 AuctionHouseBot::getNofAuctions(AHBConfig* config, AuctionHouseObject* au
 }
 
 // =============================================================================
-// This routine performs the bidding operations for the bot
+// This routine performs the bidding/buyout operations for the bot
 // =============================================================================
 
 void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* session)
@@ -186,19 +186,25 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     }
 
     //
-    // Retrieve items not owner by the bot and not bought by the bot
+    // Retrieve items not owned by the bot and not bought/bidded on by the bot
     //
 
-    QueryResult result = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE itemowner<>{} AND buyguid<>{}", _id, _id);
 
-    if (!result)
+    QueryResult ahContentQueryResult = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE itemowner<>{} AND buyguid<>{}", _id, _id);
+
+    if (!ahContentQueryResult)
     {
         return;
     }
 
-    if (result->GetRowCount() == 0)
+    if (ahContentQueryResult->GetRowCount() == 0)
     {
         return;
+    }
+
+    if (config->DebugOutBuyer)
+    {
+        LOG_INFO("module", "AHBot [{}]: Performing Buy operations for AH={} nbOfAuctions={}", _id, config->GetAHID(), ahContentQueryResult->GetRowCount());
     }
 
     //
@@ -206,19 +212,19 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     //
 
     AuctionHouseObject* auctionHouse = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
-    std::set<uint32>    possibleBids;
+    std::vector<uint32> auctionsGuidsToConsider;
 
     do
     {
-        uint32 tmpdata = result->Fetch()->Get<uint32>();
-        possibleBids.insert(tmpdata);
-    } while (result->NextRow());
+        uint32 autionGuid = ahContentQueryResult->Fetch()->Get<uint32>();
+        auctionsGuidsToConsider.push_back(autionGuid);
+    } while (ahContentQueryResult->NextRow());
 
     //
     // If it's not possible to bid stop here
     //
 
-    if (possibleBids.empty())
+    if (auctionsGuidsToConsider.empty())
     {
         if (config->DebugOutBuyer)
         {
@@ -232,27 +238,36 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     // Perform the operation for a maximum amount of bids attempts configured
     //
 
+    if (config->TraceBuyer)
+    {
+        LOG_INFO("module", "AHBot [{}]: Considering {} auctions per interval to bid on.", _id, config->GetBidsPerInterval());
+    }
+
     for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
     {
         //
         // Choose a random auction from possible auctions
         //
 
-        uint32 randBid = urand(0, possibleBids.size() - 1);
+        uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
 
-        std::set<uint32>::iterator it = possibleBids.begin();
-        std::advance(it, randBid);
+        std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        //std::advance(it, randomIndex);
 
-        AuctionEntry* auction = auctionHouse->GetAuction(*it);
+        AuctionEntry* auction = auctionHouse->GetAuction(auctionsGuidsToConsider.at(randomIndex));
 
         //
         // Prevent to bid again on the same auction
         //
 
-        possibleBids.erase(randBid);
+        auctionsGuidsToConsider.erase(itBegin + randomIndex);
 
         if (!auction)
         {
+            if (config->DebugOutBuyer)
+            {
+                LOG_ERROR("module", "AHBot [{}]: item {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton");
+            }
             continue;
         }
 
@@ -287,33 +302,54 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
 
+
         //
-        // Check which price we have to use, startbid or if it is bidded already
+        // Determine current price.
+        //
+        uint32 currentPrice = auction->bid ? auction->bid : auction->startbid;
+
+        //
+        // Determine maximum bid and skip auctions with too high a currentPrice.
         //
 
-        uint32 currentprice;
+        double basePrice = config->UseBuyPriceForBuyer ? prototype->BuyPrice : prototype->SellPrice;
+        double maximumBid = basePrice * pItem->GetCount() * config->GetBuyerPrice(prototype->Quality);
 
-        if (auction->bid)
+        if (config->TraceBuyer)
         {
-            currentprice = auction->bid;
+            LOG_INFO("module", "-------------------------------------------------");
+            LOG_INFO("module", "AHBot [{}]: Info for Auction #{}:", _id, auction->Id);
+            LOG_INFO("module", "AHBot [{}]: AuctionHouse: {}", _id, auction->GetHouseId());
+            LOG_INFO("module", "AHBot [{}]: Owner: {}", _id, auction->owner.ToString());
+            LOG_INFO("module", "AHBot [{}]: Bidder: {}", _id, auction->bidder.ToString());
+            LOG_INFO("module", "AHBot [{}]: Starting Bid: {}", _id, auction->startbid);
+            LOG_INFO("module", "AHBot [{}]: Current Bid: {}", _id, currentPrice);
+            LOG_INFO("module", "AHBot [{}]: Buyout: {}", _id, auction->buyout);
+            LOG_INFO("module", "AHBot [{}]: Deposit: {}", _id, auction->deposit);
+            LOG_INFO("module", "AHBot [{}]: Expire Time: {}", _id, uint32(auction->expire_time));
+            LOG_INFO("module", "AHBot [{}]: Bid Max: {}", _id, maximumBid);
+            LOG_INFO("module", "AHBot [{}]: Item GUID: {}", _id, auction->item_guid.ToString());
+            LOG_INFO("module", "AHBot [{}]: Item Template: {}", _id, auction->item_template);
+            LOG_INFO("module", "AHBot [{}]: Item ID: {}", _id, prototype->ItemId);
+            LOG_INFO("module", "AHBot [{}]: Buy Price: {}", _id, prototype->BuyPrice);
+            LOG_INFO("module", "AHBot [{}]: Sell Price: {}", _id, prototype->SellPrice);
+            LOG_INFO("module", "AHBot [{}]: Bonding: {}", _id, prototype->Bonding);
+            LOG_INFO("module", "AHBot [{}]: Quality: {}", _id, prototype->Quality);
+            LOG_INFO("module", "AHBot [{}]: Item Level: {}", _id, prototype->ItemLevel);
+            LOG_INFO("module", "AHBot [{}]: Ammo Type: {}", _id, prototype->AmmoType);
+            LOG_INFO("module", "-------------------------------------------------");
         }
-        else
+
+        if (currentPrice > maximumBid)
         {
-            currentprice = auction->startbid;
+            if (config->TraceBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: Current price too high, skipped.", _id);
+            }
+            continue;
         }
 
-        //
-        // Prepare portion from maximum bid
-        //
-
-        double      bidrate = static_cast<double>(urand(1, 100)) / 100;
-        long double bidMax  = 0;
-
-        //
-        // Check that bid has an acceptable value and take bid based on vendorprice, stacksize and quality
-        //
-
-        if (config->BuyMethod)
+        /*if (config->UseBuyPriceForBuyer)
         {
             if (prototype->Quality <= AHB_MAX_QUALITY)
             {
@@ -350,7 +386,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
                 continue;
             }
-        }
+        }*/
 
         //
         // Recalculate the bid depending on the type of the item
@@ -358,20 +394,32 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         switch (prototype->Class)
         {
-            // ammo
-        case 6:
-            bidMax = 0;
+        case ITEM_CLASS_PROJECTILE:
+            maximumBid = 0;
+            break;
+        case ITEM_CLASS_GENERIC:
+            maximumBid = 0;
+            break;
+        case ITEM_CLASS_MONEY:
+            maximumBid = 0;
+            break;
+        case ITEM_CLASS_PERMANENT:
+            maximumBid = 0;
             break;
         default:
             break;
         }
 
         //
-        // Test the computed bid
+        //  Make sure to skip the auction if maximum bid is 0.
         //
 
-        if (bidMax == 0)
+        if (maximumBid == 0)
         {
+            if (config->TraceBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: Maximum bid value for item class {} is 0, skipped.", _id, prototype->Class);
+            }
             continue;
         }
 
@@ -379,23 +427,43 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Calculate our bid
         //
 
-        long double bidvalue = currentprice + ((bidMax - currentprice) * bidrate);
-        uint32      bidprice = static_cast<uint32>(bidvalue);
+        double bidRate = static_cast<double>(urand(1, 100)) / 100;
+        double bidValue = currentPrice + ((maximumBid - currentPrice) * bidRate);
+        uint32 bidPrice = static_cast<uint32>(bidValue);
 
         //
         // Check our bid is high enough to be valid. If not, correct it to minimum.
         //
-
-        if ((currentprice + auction->GetAuctionOutBid()) > bidprice)
+        uint32 minimumOutbid = auction->GetAuctionOutBid();
+        if ((currentPrice + minimumOutbid) > bidPrice)
         {
-            bidprice = currentprice + auction->GetAuctionOutBid();
+            bidPrice = currentPrice + minimumOutbid;
+        }
+
+        if (bidPrice > maximumBid)
+        {
+            if (config->TraceBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: Bid was above bidMax for item={} AH={}", _id, auction->item_guid.ToString(), config->GetAHID());
+            }
+            bidPrice = maximumBid;
+        }
+
+        if (config->DebugOutBuyer)
+        {
+            LOG_INFO("module", "-------------------------------------------------");
+            LOG_INFO("module", "AHBot [{}]: Bid Rate: {}", _id, bidRate);
+            LOG_INFO("module", "AHBot [{}]: Bid Value: {}", _id, bidValue);
+            LOG_INFO("module", "AHBot [{}]: Bid Price: {}", _id, bidPrice);
+            LOG_INFO("module", "AHBot [{}]: Minimum Outbid: {}", _id, minimumOutbid);
+            LOG_INFO("module", "-------------------------------------------------");
         }
 
         //
         // Print out debug info
         //
 
-        if (config->DebugOutBuyer)
+        /*if (config->DebugOutBuyer)
         {
             LOG_INFO("module", "-------------------------------------------------");
             LOG_INFO("module", "AHBot [{}]: Info for Auction #{}:", _id, auction->Id);
@@ -422,18 +490,16 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             LOG_INFO("module", "AHBot [{}]: Item Level: {}"       , _id, prototype->ItemLevel);
             LOG_INFO("module", "AHBot [{}]: Ammo Type: {}"        , _id, prototype->AmmoType);
             LOG_INFO("module", "-------------------------------------------------");
-        }
+        }*/
 
         //
         // Check whether we do normal bid, or buyout
         //
 
-        bool bought = false;
-
-        if ((bidprice < auction->buyout) || (auction->buyout == 0))
+        if ((bidPrice < auction->buyout) || (auction->buyout == 0))
         {
             //
-            // Perform a new bid on the auction
+            // Return money to last bidder.
             //
         
             if (auction->bidder)
@@ -444,26 +510,28 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
                     // Mail to last bidder and return their money
                     //
         
-                    auto trans = CharacterDatabase.BeginTransaction();
-        
-                    sAuctionMgr->SendAuctionOutbiddedMail(auction, bidprice, session->GetPlayer(), trans);
+                    auto trans = CharacterDatabase.BeginTransaction();        
+                    sAuctionMgr->SendAuctionOutbiddedMail(auction, bidPrice, session->GetPlayer(), trans);
                     CharacterDatabase.CommitTransaction  (trans);
                 }
             }
         
             auction->bidder = AHBplayer->GetGUID();
-            auction->bid    = bidprice;
+            auction->bid = bidPrice;
         
             //
-            // Save the auction into database
+            // update/save the auction into database
             //
         
             CharacterDatabase.Execute("UPDATE auctionhouse SET buyguid = '{}', lastbid = '{}' WHERE id = '{}'", auction->bidder.GetCounter(), auction->bid, auction->Id);
+
+            if (config->TraceBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: New bid, id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentPrice, auction->buyout);
+            }            
         }
         else
         {
-            bought = true;
-
             //
             // Perform the buyout
             //
@@ -473,21 +541,21 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             if ((auction->bidder) && (AHBplayer->GetGUID() != auction->bidder))
             {
                 //
-                // Send the mail to the last bidder
+                //  Mail to last bidder and return their money
                 //
 
                 sAuctionMgr->SendAuctionOutbiddedMail(auction, auction->buyout, session->GetPlayer(), trans);
             }
 
             auction->bidder = AHBplayer->GetGUID();
-            auction->bid    = auction->buyout;
+            auction->bid = auction->buyout;
 
             // 
             // Send mails to buyer & seller
             // 
 
             sAuctionMgr->SendAuctionSuccessfulMail(auction, trans);
-            sAuctionMgr->SendAuctionWonMail       (auction, trans);
+            sAuctionMgr->SendAuctionWonMail(auction, trans);
 
             // 
             // Removes any trace of the item
@@ -495,25 +563,14 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
             auction->DeleteFromDB(trans);
 
-            sAuctionMgr->RemoveAItem   (auction->item_guid);
+            sAuctionMgr->RemoveAItem(auction->item_guid);
             auctionHouse->RemoveAuction(auction);
 
             CharacterDatabase.CommitTransaction(trans);
-        }
 
-        //
-        // Tracing
-        //
-
-        if (config->TraceBuyer)
-        {
-            if (bought)
+            if (config->TraceBuyer)
             {
-                LOG_INFO("module", "AHBot [{}]: Bought , id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentprice, auction->buyout);
-            }
-            else
-            {
-                LOG_INFO("module", "AHBot [{}]: New bid, id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentprice, auction->buyout);
+                LOG_INFO("module", "AHBot [{}]: Bought , id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentPrice, auction->buyout);
             }
         }
     }
@@ -859,7 +916,7 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
 
         if (buyoutPrice == 0)
         {
-            if (config->SellMethod)
+            if (config->UseBuyPriceForSeller)
             {
                 buyoutPrice = prototype->BuyPrice;
             }
@@ -1044,6 +1101,8 @@ void AuctionHouseBot::Update()
 
     ObjectAccessor::AddObject(&_AHBplayer);
 
+    LOG_INFO("module", "AHBot [{}]: Begin Performing Update Cycle", _id);
+
     //
     // Perform update for the factions markets
     //
@@ -1056,10 +1115,20 @@ void AuctionHouseBot::Update()
 
         if (_allianceConfig)
         {
+            if (_allianceConfig->TraceSeller)
+            {
+                LOG_INFO("module", "AHBot [{}]: Begin Sell for Alliance", _id);
+            }
+
             Sell(&_AHBplayer, _allianceConfig);
 
             if (((_newrun - _lastrun_a_sec) >= (_allianceConfig->GetBiddingInterval() * MINUTE)) && (_allianceConfig->GetBidsPerInterval() > 0))
             {
+                if (_allianceConfig->TraceBuyer)
+                {
+                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance", _id);
+                }
+
                 Buy(&_AHBplayer, _allianceConfig, &_session);
                 _lastrun_a_sec = _newrun;
             }
@@ -1071,10 +1140,18 @@ void AuctionHouseBot::Update()
 
         if (_hordeConfig)
         {
+            if (_hordeConfig->TraceSeller)
+            {
+                LOG_INFO("module", "AHBot [{}]: Begin Sell for Horde", _id);
+            }
             Sell(&_AHBplayer, _hordeConfig);
 
             if (((_newrun - _lastrun_h_sec) >= (_hordeConfig->GetBiddingInterval() * MINUTE)) && (_hordeConfig->GetBidsPerInterval() > 0))
             {
+                if (_hordeConfig->TraceBuyer)
+                {
+                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde", _id);
+                }
                 Buy(&_AHBplayer, _hordeConfig, &_session);
                 _lastrun_h_sec = _newrun;
             }
@@ -1088,10 +1165,18 @@ void AuctionHouseBot::Update()
 
     if (_neutralConfig)
     {
+        if (_neutralConfig->TraceSeller)
+        {
+            LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral", _id);
+        }
         Sell(&_AHBplayer, _neutralConfig);
 
         if (((_newrun - _lastrun_n_sec) >= (_neutralConfig->GetBiddingInterval() * MINUTE)) && (_neutralConfig->GetBidsPerInterval() > 0))
         {
+            if (_neutralConfig->TraceBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral", _id);
+            }
             Buy(&_AHBplayer, _neutralConfig, &_session);
             _lastrun_n_sec = _newrun;
         }

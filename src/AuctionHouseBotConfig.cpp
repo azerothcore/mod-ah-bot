@@ -201,8 +201,8 @@ AHBConfig::AHBConfig(uint32 ahid, AHBConfig* conf)
     TraceBuyer                     = conf->TraceBuyer;
     AHBSeller                      = conf->AHBSeller;
     AHBBuyer                       = conf->AHBBuyer;
-    BuyMethod                      = conf->BuyMethod;
-    SellMethod                     = conf->SellMethod;
+    UseBuyPriceForBuyer            = conf->UseBuyPriceForBuyer;
+    UseBuyPriceForSeller           = conf->UseBuyPriceForSeller;
     ConsiderOnlyBotAuctions        = conf->ConsiderOnlyBotAuctions;
     ItemsPerCycle                  = conf->ItemsPerCycle;
     Vendor_Items                   = conf->Vendor_Items;
@@ -508,8 +508,8 @@ void AHBConfig::Reset()
     AHBSeller                      = false;
     AHBBuyer                       = false;
 
-    BuyMethod                      = false;
-    SellMethod                     = false;
+    UseBuyPriceForBuyer            = false;
+    UseBuyPriceForSeller           = false;
     SellAtMarketPrice              = false;
     ConsiderOnlyBotAuctions        = false;
     ItemsPerCycle                  = 200;
@@ -1700,58 +1700,114 @@ void AHBConfig::DecItemCounts(uint32 color)
     {
     case AHB_GREY_TG:
         --greyTGoods;
+        if (greyTGoods < 0)
+        {
+            greyTGoods = 0;
+        }
         break;
 
     case AHB_WHITE_TG:
         --whiteTGoods;
+        if (whiteTGoods < 0)
+        {
+            whiteTGoods = 0;
+        }
         break;
 
     case AHB_GREEN_TG:
         --greenTGoods;
+        if (greenTGoods < 0)
+        {
+            greenTGoods = 0;
+        }
         break;
 
     case AHB_BLUE_TG:
         --blueTGoods;
+        if (blueTGoods < 0)
+        {
+            blueTGoods = 0;
+        }
         break;
 
     case AHB_PURPLE_TG:
         --purpleTGoods;
+        if (purpleTGoods < 0)
+        {
+            purpleTGoods = 0;
+        }
         break;
 
     case AHB_ORANGE_TG:
         --orangeTGoods;
+        if (orangeTGoods < 0)
+        {
+            orangeTGoods = 0;
+        }
         break;
 
     case AHB_YELLOW_TG:
         --yellowTGoods;
+        if (yellowTGoods < 0)
+        {
+            yellowTGoods = 0;
+        }
         break;
 
     case AHB_GREY_I:
         --greyItems;
+        if (greyItems < 0)
+        {
+            greyItems = 0;
+        }
         break;
 
     case AHB_WHITE_I:
         --whiteItems;
+        if (whiteItems < 0)
+        {
+            whiteItems = 0;
+        }
         break;
 
     case AHB_GREEN_I:
         --greenItems;
+        if (greenItems < 0)
+        {
+            greenItems = 0;
+        }
         break;
 
     case AHB_BLUE_I:
         --blueItems;
+        if (blueItems < 0)
+        {
+            blueItems = 0;
+        }
         break;
 
     case AHB_PURPLE_I:
         --purpleItems;
+        if (purpleItems < 0)
+        {
+            purpleItems = 0;
+        }
         break;
 
     case AHB_ORANGE_I:
         --orangeItems;
+        if (orangeItems < 0)
+        {
+            orangeItems = 0;
+        }
         break;
 
     case AHB_YELLOW_I:
         --yellowItems;
+        if (yellowItems < 0)
+        {
+            yellowItems = 0;
+        }
         break;
 
     default:
@@ -2039,8 +2095,8 @@ void AHBConfig::InitializeFromFile()
 
     AHBSeller                      = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.EnableSeller"           , false);
     AHBBuyer                       = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.EnableBuyer"            , false);
-    SellMethod                     = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.UseBuyPriceForSeller"   , false);
-    BuyMethod                      = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.UseBuyPriceForBuyer"    , false);
+    UseBuyPriceForSeller           = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.UseBuyPriceForSeller"   , false);
+    UseBuyPriceForBuyer            = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.UseBuyPriceForBuyer"    , false);
     SellAtMarketPrice              = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.UseMarketPriceForSeller", false);
     MarketResetThreshold           = sConfigMgr->GetOption<uint32>("AuctionHouseBot.MarketResetThreshold"   , 25);
     DuplicatesCount                = sConfigMgr->GetOption<uint32>("AuctionHouseBot.DuplicatesCount"        , 0);
@@ -2286,9 +2342,9 @@ void AHBConfig::InitializeFromSql(std::set<uint32> botsIds)
     //
 
     AuctionHouseObject* auctionHouse = sAuctionMgr->GetAuctionsMap(GetAHFID());
-    uint32              auctions     = auctionHouse->Getcount();
+    uint32 numberOfAuctions = auctionHouse->Getcount();
 
-    if (auctions)
+    if (numberOfAuctions > 0)
     {
         for (AuctionHouseObject::AuctionEntryMap::const_iterator itr = auctionHouse->GetAuctionsBegin(); itr != auctionHouse->GetAuctionsEnd(); ++itr)
         {
@@ -2621,7 +2677,7 @@ void AHBConfig::InitializeBins()
         // Exclude items with no possible price
         //
 
-        if (SellMethod)
+        if (UseBuyPriceForSeller)
         {
             if (itr->second.BuyPrice == 0)
             {
