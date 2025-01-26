@@ -254,7 +254,9 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         //std::advance(it, randomIndex);
 
-        AuctionEntry* auction = auctionHouse->GetAuction(auctionsGuidsToConsider.at(randomIndex));
+        uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
+
+        AuctionEntry* auction = auctionHouse->GetAuction(auctionID);
 
         //
         // Prevent to bid again on the same auction
@@ -266,7 +268,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: item {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton");
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auctionID);
             }
             continue;
         }
