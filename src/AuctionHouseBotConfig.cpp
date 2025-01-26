@@ -1699,114 +1699,100 @@ void AHBConfig::DecItemCounts(uint32 color)
     switch (color)
     {
     case AHB_GREY_TG:
-        --greyTGoods;
-        if (greyTGoods < 0)
+        if (greyTGoods > 0)
         {
-            greyTGoods = 0;
+            --greyTGoods;
         }
         break;
 
     case AHB_WHITE_TG:
-        --whiteTGoods;
-        if (whiteTGoods < 0)
+        if (whiteTGoods > 0)
         {
-            whiteTGoods = 0;
+            --whiteTGoods;
         }
         break;
 
-    case AHB_GREEN_TG:
-        --greenTGoods;
-        if (greenTGoods < 0)
+    case AHB_GREEN_TG:        
+        if (greenTGoods > 0)
         {
-            greenTGoods = 0;
+            --greenTGoods;
         }
         break;
 
     case AHB_BLUE_TG:
-        --blueTGoods;
-        if (blueTGoods < 0)
+        if (blueTGoods > 0)
         {
-            blueTGoods = 0;
+            --blueTGoods;
         }
         break;
 
     case AHB_PURPLE_TG:
-        --purpleTGoods;
-        if (purpleTGoods < 0)
+        if (purpleTGoods > 0)
         {
-            purpleTGoods = 0;
+            --purpleTGoods;
         }
         break;
 
     case AHB_ORANGE_TG:
-        --orangeTGoods;
-        if (orangeTGoods < 0)
+        if (orangeTGoods > 0)
         {
-            orangeTGoods = 0;
+            --orangeTGoods;        
         }
         break;
 
     case AHB_YELLOW_TG:
-        --yellowTGoods;
-        if (yellowTGoods < 0)
+        if (yellowTGoods > 0)
         {
-            yellowTGoods = 0;
+            --yellowTGoods;
         }
         break;
 
     case AHB_GREY_I:
-        --greyItems;
-        if (greyItems < 0)
+        if (greyItems > 0)
         {
-            greyItems = 0;
+            --greyItems;
         }
         break;
 
     case AHB_WHITE_I:
-        --whiteItems;
-        if (whiteItems < 0)
+        if (whiteItems > 0)
         {
-            whiteItems = 0;
+            --whiteItems;
         }
         break;
 
     case AHB_GREEN_I:
-        --greenItems;
-        if (greenItems < 0)
+        if (greenItems > 0)
         {
-            greenItems = 0;
+            --greenItems;
         }
         break;
 
     case AHB_BLUE_I:
-        --blueItems;
-        if (blueItems < 0)
+        if (blueItems > 0)
         {
-            blueItems = 0;
+            --blueItems;
         }
         break;
 
     case AHB_PURPLE_I:
-        --purpleItems;
-        if (purpleItems < 0)
+        if (purpleItems > 0)
         {
-            purpleItems = 0;
+            --purpleItems;
         }
         break;
 
     case AHB_ORANGE_I:
-        --orangeItems;
-        if (orangeItems < 0)
+        if (orangeItems > 0)
         {
-            orangeItems = 0;
+            --orangeItems;
         }
         break;
 
     case AHB_YELLOW_I:
-        --yellowItems;
-        if (yellowItems < 0)
+        if (yellowItems > 0)
         {
-            yellowItems = 0;
+            --yellowItems;
         }
         break;
 
