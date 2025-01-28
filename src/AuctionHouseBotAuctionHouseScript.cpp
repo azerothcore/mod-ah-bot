@@ -141,6 +141,7 @@ void AHBot_AuctionHouseScript::OnAuctionAdd(AuctionHouseObject* /*ah*/, AuctionE
     config->IncItemCounts(prototype->Class, prototype->Quality);
 }
 
+// this is called after the auction has been removed from the DB
 void AHBot_AuctionHouseScript::OnAuctionRemove(AuctionHouseObject* /*ah*/, AuctionEntry* auction)
 {
     // 
@@ -174,36 +175,26 @@ void AHBot_AuctionHouseScript::OnAuctionRemove(AuctionHouseObject* /*ah*/, Aucti
         }
     }
 
-    //
-    // Verify if we can operate on the item
-    //
-
-    Item* pItem = sAuctionMgr->GetAItem(auction->item_guid);
-
+    // only get the prototype as actual ite mhas already been removed from server AH in this callback
     ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
 
-    if (!pItem)
+    if (prototype)
     {
+        config->DecItemCounts(prototype->Class, prototype->Quality);
         if (config->DebugOut)
         {
-            LOG_ERROR("module", "AHBot: Item {} doesn't exist, perhaps bought already?", auction->item_guid.ToString());
+            LOG_INFO("module", "AHBot: Item was removed ah={}, item={}, count={}", auction->GetHouseId(), auction->item_template, config->GetItemCounts(prototype->Quality));
         }
-
-        // Decrement item counts even if the item does not exist
-        if (prototype)
-        {
-            config->DecItemCounts(prototype->Class, prototype->Quality);
-        }
-
-        return;
     }
-
-    if (config->DebugOut)
+    else
     {
-        LOG_INFO("module", "AHBot: ah={}, item={}, count={}", auction->GetHouseId(), auction->item_template, config->GetItemCounts(prototype->Quality));
+        // should never happen
+        if (config->DebugOut)
+        {
+            LOG_ERROR("module", "AHBot: Item was removed but no prototype was found");
+        }
     }
-
-    config->DecItemCounts(prototype->Class, prototype->Quality);
+    
 }
 
 void AHBot_AuctionHouseScript::OnAuctionSuccessful(AuctionHouseObject* /*ah*/, AuctionEntry* auction)
@@ -270,8 +261,6 @@ void AHBot_AuctionHouseScript::OnAuctionExpire(AuctionHouseObject* /*ah*/, Aucti
     {
         LOG_INFO("module", "AHBot: ah={}, item={}, count={}", auction->GetHouseId(), auction->item_template, config->GetItemCounts(prototype->Quality));
     }
-
-    config->DecItemCounts(prototype->Class, prototype->Quality);
 }
 
 void AHBot_AuctionHouseScript::OnBeforeAuctionHouseMgrUpdate()

@@ -1615,68 +1615,57 @@ void AHBConfig::CalculatePercents()
     }
 }
 
-uint32 AHBConfig::GetMaximum(uint32 color)
+uint32 AHBConfig::GetMaximum(uint32 ahbotItemType)
 {
-    switch (color)
+    switch (ahbotItemType)
     {
     case AHB_GREY_TG:
         return greytgp;
-        break;
 
     case AHB_WHITE_TG:
         return whitetgp;
-        break;
 
     case AHB_GREEN_TG:
         return greentgp;
-        break;
 
     case AHB_BLUE_TG:
         return bluetgp;
-        break;
 
     case AHB_PURPLE_TG:
         return purpletgp;
-        break;
+
     case AHB_ORANGE_TG:
         return orangetgp;
-        break;
 
     case AHB_YELLOW_TG:
         return yellowtgp;
-        break;
 
     case AHB_GREY_I:
         return greyip;
-        break;
 
     case AHB_WHITE_I:
         return whiteip;
-        break;
 
     case AHB_GREEN_I:
         return greenip;
-        break;
 
     case AHB_BLUE_I:
         return blueip;
-        break;
 
     case AHB_PURPLE_I:
         return purpleip;
-        break;
 
     case AHB_ORANGE_I:
         return orangeip;
-        break;
 
     case AHB_YELLOW_I:
         return yellowip;
-        break;
 
     default:
+    {
+        LOG_ERROR("module", "AHBot AHBConfig::GetMaximum() invalid param");
         return 0;
-        break;
+    }
     }
 }
 
@@ -1689,14 +1678,14 @@ void AHBConfig::DecItemCounts(uint32 Class, uint32 Quality)
         break;
 
     default:
-        DecItemCounts(Quality + 7);
+        DecItemCounts(Quality + AHB_ITEM_TYPE_OFFSET);
         break;
     }
 }
 
-void AHBConfig::DecItemCounts(uint32 color)
+void AHBConfig::DecItemCounts(uint32 ahbotItemType)
 {
-    switch (color)
+    switch (ahbotItemType)
     {
     case AHB_GREY_TG:
         if (greyTGoods > 0)
@@ -1815,9 +1804,9 @@ void AHBConfig::IncItemCounts(uint32 Class, uint32 Quality)
     }
 }
 
-void AHBConfig::IncItemCounts(uint32 color)
+void AHBConfig::IncItemCounts(uint32 ahbotItemType)
 {
-    switch (color)
+    switch (ahbotItemType)
     {
     case AHB_GREY_TG:
         ++greyTGoods;
