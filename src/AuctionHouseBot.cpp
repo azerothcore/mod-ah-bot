@@ -24,9 +24,11 @@
 #include "WorldSession.h"
 #include "GameTime.h"
 #include "DatabaseEnv.h"
+#include "ScriptMgr.h"
 
 #include "AuctionHouseBot.h"
 #include "AuctionHouseBotCommon.h"
+#include "AuctionHouseSearcher.h"
 
 using namespace std;
 
@@ -189,8 +191,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     // Retrieve items not owned by the bot and not bought/bidded on by the bot
     //
 
-
-    QueryResult ahContentQueryResult = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE itemowner<>{} AND buyguid<>{}", _id, _id);
+    QueryResult ahContentQueryResult = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid<>{}", config->GetAHID(), _id, _id);
 
     if (!ahContentQueryResult)
     {
@@ -211,7 +212,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     // Fetches content of selected AH to look for possible bids
     //
 
-    AuctionHouseObject* auctionHouse = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
+    AuctionHouseObject* auctionHouseObject = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
     std::vector<uint32> auctionsGuidsToConsider;
 
     do
@@ -256,7 +257,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
 
-        AuctionEntry* auction = auctionHouse->GetAuction(auctionID);
+        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
 
         //
         // Prevent to bid again on the same auction
@@ -451,15 +452,17 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         
             auction->bidder = AHBplayer->GetGUID();
             auction->bid = bidPrice;
+
+            sAuctionMgr->GetAuctionHouseSearcher()->UpdateBid(auction);
         
             //
             // update/save the auction into database
             //
-            CharacterDatabase.DirectExecute("UPDATE auctionhouse SET buyguid = '{}', lastbid = '{}' WHERE id = '{}'", auction->bidder.GetCounter(), auction->bid, auction->Id);
+            //CharacterDatabase.DirectExecute("UPDATE auctionhouse SET buyguid = '{}', lastbid = '{}' WHERE id = '{}'", auction->bidder.GetCounter(), auction->bid, auction->Id);
 
             if (config->TraceBuyer)
             {
-                LOG_INFO("module", "AHBot [{}]: New bid, id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentPrice, auction->buyout);
+                LOG_INFO("module", "AHBot [{}]: New bid, itemid={}, ah={}, auctionId={} item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->Id, auction->item_template, auction->startbid, currentPrice, auction->buyout);
             }            
         }
         else
@@ -493,16 +496,17 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             // Removes any trace of the item
             // 
 
+            ScriptMgr::instance()->OnAuctionSuccessful(auctionHouseObject, auction);
             auction->DeleteFromDB(trans);
-
             sAuctionMgr->RemoveAItem(auction->item_guid);
-            auctionHouse->RemoveAuction(auction);
+            auctionHouseObject->RemoveAuction(auction);
+
 
             CharacterDatabase.CommitTransaction(trans);
 
             if (config->TraceBuyer)
             {
-                LOG_INFO("module", "AHBot [{}]: Bought , id={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, auction->GetHouseId(), auction->item_template, auction->startbid, currentPrice, auction->buyout);
+                LOG_INFO("module", "AHBot [{}]: Bought , itemid={}, ah={}, item={}, start={}, current={}, buyout={}", _id, prototype->ItemId, AuctionHouseId(auction->GetHouseId()), auction->item_template, auction->startbid, currentPrice, auction->buyout);
             }
         }
     }
@@ -554,7 +558,7 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
     }
 
     // don't mess with the AH update let server do it.
-    //auctionHouse->Update();
+    //auctionHouseObject->Update();
 
     // 
     // Check if we are clear to proceed
@@ -929,7 +933,7 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
         // 
 
         // todo: reread config for actual values, maybe an array to not rely on local count that could potentially be mismatched from config.
-        // config is updated from callback received after auctionHouse->AddAuction(auctionEntry);
+        // config is updated from callback received after auctionHouseObject->AddAuction(auctionEntry);
         // or maybe reparse the server actual value each update cycle, would need profiling.
         switch (itemTypeSelectedToSell)
         {
@@ -1053,7 +1057,7 @@ void AuctionHouseBot::Update()
         {
             if (_allianceConfig->TraceSeller)
             {
-                LOG_INFO("module", "AHBot [{}]: Begin Sell for Alliance", _id);
+                LOG_INFO("module", "AHBot [{}]: Begin Sell for Alliance...", _id);
             }
 
             Sell(&_AHBplayer, _allianceConfig);
@@ -1062,7 +1066,7 @@ void AuctionHouseBot::Update()
             {
                 if (_allianceConfig->TraceBuyer)
                 {
-                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance", _id);
+                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance...", _id);
                 }
 
                 Buy(&_AHBplayer, _allianceConfig, &_session);
@@ -1078,7 +1082,7 @@ void AuctionHouseBot::Update()
         {
             if (_hordeConfig->TraceSeller)
             {
-                LOG_INFO("module", "AHBot [{}]: Begin Sell for Horde", _id);
+                LOG_INFO("module", "AHBot [{}]: Begin Sell for Horde...", _id);
             }
             Sell(&_AHBplayer, _hordeConfig);
 
@@ -1086,7 +1090,7 @@ void AuctionHouseBot::Update()
             {
                 if (_hordeConfig->TraceBuyer)
                 {
-                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde", _id);
+                    LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde...", _id);
                 }
                 Buy(&_AHBplayer, _hordeConfig, &_session);
                 _lastrun_h_sec = _newrun;
@@ -1103,7 +1107,7 @@ void AuctionHouseBot::Update()
     {
         if (_neutralConfig->TraceSeller)
         {
-            LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral", _id);
+            LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral...", _id);
         }
         Sell(&_AHBplayer, _neutralConfig);
 
@@ -1111,7 +1115,7 @@ void AuctionHouseBot::Update()
         {
             if (_neutralConfig->TraceBuyer)
             {
-                LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral", _id);
+                LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
             Buy(&_AHBplayer, _neutralConfig, &_session);
             _lastrun_n_sec = _newrun;
