@@ -94,6 +94,11 @@
 #        2 = shorts, auctions lasts within an hour
 #    Default 1
 #
+#    AuctionHouseBot.SellZeroPriceItems
+#        Sell items which does not have a price associated (depending also on UseBuyPriceForSeller) by
+#        proposing a price which depends on the item level and its rarity class.
+#    Default 0 (disabled)
+#
 ###############################################################################
 
 AuctionHouseBot.DEBUG = 0
@@ -117,6 +122,7 @@ AuctionHouseBot.ConsiderOnlyBotAuctions = 0
 AuctionHouseBot.DuplicatesCount = 0
 AuctionHouseBot.DivisibleStacks = 0
 AuctionHouseBot.ElapsingTimeClass = 1
+AuctionHouseBot.SellZeroPriceItems = 0
 
 ###############################################################################
 # AUCTION HOUSE BOT FILTERS PART 1
