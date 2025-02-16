@@ -575,10 +575,8 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
 
         if (config->DebugOutSeller)
         {
-            LOG_ERROR("module", "AHBot [{}]: Auctions above minimum", _id);
+            LOG_TRACE("module", "AHBot [{}]: Auctions above minimum", _id);
         }
-
-        return;
     }
 
     if (nbOfAuctions >= maxTotalItems)
@@ -587,7 +585,7 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
 
         if (config->DebugOutSeller)
         {
-            LOG_ERROR("module", "AHBot [{}]: Auctions at or above maximum", _id);
+            LOG_TRACE("module", "AHBot [{}]: Auctions at or above maximum", _id);
         }
 
         return;
