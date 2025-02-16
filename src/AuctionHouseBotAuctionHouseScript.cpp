@@ -227,7 +227,7 @@ void AHBot_AuctionHouseScript::OnAuctionSuccessful(AuctionHouseObject* /*ah*/, A
 
 }
 
-void AHBot_AuctionHouseScript::OnAuctionExpire(AuctionHouseObject* ah, AuctionEntry* auction)
+void AHBot_AuctionHouseScript::OnAuctionExpire(AuctionHouseObject* /*ah*/, AuctionEntry* auction)
 {
     //
     // Get the configuration for the auction house
