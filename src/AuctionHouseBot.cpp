@@ -246,8 +246,8 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     // Fix Crash Error
 
-    QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid<>{}", config->GetAHID(), 0, 0);
-
+    QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner=0 AND buyguid=0", config->GetAHID());
+    
     uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
 
     if (ahContentQueryResultNeedToBind) {
