@@ -244,29 +244,40 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         LOG_INFO("module", "AHBot [{}]: Considering {} auctions per interval to bid on.", _id, config->GetBidsPerInterval());
     }
 
-    for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
+    uint32 dynamic_count_of_binds = 0;
+
+    if (config->GetBidsPerInterval() > auctionsGuidsToConsider.size()) {
+        dynamic_count_of_binds = config->GetBidsPerInterval();
+    } else {
+        dynamic_count_of_binds = 1;
+    }
+
+    for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
     {
         //
         // Choose a random auction from possible auctions
         //
 
-        uint32 randBid = urand(0, auctionsGuidsToConsider.size() - 1);
+        uint32 randomIndex = urand(0, dynamic_count_of_binds - 1);
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        std::advance(itBegin, randBid);
-        AuctionEntry* auction = auctionHouseObject->GetAuction(*itBegin);
+        //std::advance(it, randomIndex);
+
+        uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
+
+        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
 
         //
         // Prevent to bid again on the same auction
         //
 
-        auctionsGuidsToConsider.erase(itBegin);
+        auctionsGuidsToConsider.erase(itBegin + randomIndex);
 
         if (!auction)
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id);
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auctionID);
             }
             continue;
         }
@@ -302,15 +313,6 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
 
-        if (prototype->Quality > AHB_MAX_QUALITY)
-        {
-            if (config->DebugOutBuyer)
-            {
-                LOG_INFO("module", "AHBot [{}]: Quality {} not supported.", _id, prototype->Quality);
-            }
-
-            continue;
-        }
 
         //
         // Determine current price.
@@ -412,14 +414,14 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             bidPrice = currentPrice + minimumOutbid;
         }
 
-        /*if (bidPrice > maximumBid)
+        if (bidPrice > maximumBid)
         {
             if (config->TraceBuyer)
             {
                 LOG_INFO("module", "AHBot [{}]: Bid was above bidMax for item={} AH={}", _id, auction->item_guid.ToString(), config->GetAHID());
             }
             bidPrice = maximumBid;
-        }*/
+        }
 
         if (config->DebugOutBuyer)
         {
