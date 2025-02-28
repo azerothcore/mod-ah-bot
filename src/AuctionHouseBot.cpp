@@ -271,8 +271,6 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             continue;
         }
 
-        uint32 auctionID = auction->Id;
-
         //
         // Prevent from buying items from the other bots
         //
@@ -304,6 +302,15 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
 
+        if (prototype->Quality > AHB_MAX_QUALITY)
+        {
+            if (config->DebugOutBuyer)
+            {
+                LOG_INFO("module", "AHBot [{}]: Quality {} not supported.", _id, prototype->Quality);
+            }
+
+            continue;
+        }
 
         //
         // Determine current price.
@@ -405,14 +412,14 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             bidPrice = currentPrice + minimumOutbid;
         }
 
-        if (bidPrice > maximumBid)
+        /*if (bidPrice > maximumBid)
         {
             if (config->TraceBuyer)
             {
                 LOG_INFO("module", "AHBot [{}]: Bid was above bidMax for item={} AH={}", _id, auction->item_guid.ToString(), config->GetAHID());
             }
             bidPrice = maximumBid;
-        }
+        }*/
 
         if (config->DebugOutBuyer)
         {
