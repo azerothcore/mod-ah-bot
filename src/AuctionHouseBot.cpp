@@ -244,12 +244,18 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         LOG_INFO("module", "AHBot [{}]: Considering {} auctions per interval to bid on.", _id, config->GetBidsPerInterval());
     }
 
-    uint32 dynamic_count_of_binds = 0;
+    // Fix Crash Error
 
-    if (config->GetBidsPerInterval() > auctionsGuidsToConsider.size()) {
-        dynamic_count_of_binds = config->GetBidsPerInterval();
-    } else {
-        dynamic_count_of_binds = 1;
+    QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid<>{}", config->GetAHID(), 0, 0);
+
+    uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
+
+    if (ahContentQueryResultNeedToBind) {
+        if (ahContentQueryResultNeedToBind->GetRowCount() > 0) {
+            if (dynamic_count_of_binds > ahContentQueryResultNeedToBind->GetRowCount()) {
+                dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount();
+            }
+        }
     }
 
     for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
