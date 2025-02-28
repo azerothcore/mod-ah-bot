@@ -250,14 +250,11 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Choose a random auction from possible auctions
         //
 
-        //uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
+        uint32 randBid = urand(0, auctionPool.size() - 1);
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        //std::advance(it, randomIndex);
-
-        uint32 auctionID = auctionsGuidsToConsider.at(itBegin);
-
-        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
+        std::advance(itBegin, randBid);
+        AuctionEntry* auction = auctionHouseObject->GetAuction(*itBegin);
 
         //
         // Prevent to bid again on the same auction
@@ -273,6 +270,8 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             }
             continue;
         }
+
+        uint32 auctionID = auction->Id;
 
         //
         // Prevent from buying items from the other bots
