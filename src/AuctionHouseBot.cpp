@@ -250,7 +250,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Choose a random auction from possible auctions
         //
 
-        uint32 randBid = urand(0, auctionPool.size() - 1);
+        uint32 randBid = urand(0, auctionsGuidsToConsider.size() - 1);
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         std::advance(itBegin, randBid);
