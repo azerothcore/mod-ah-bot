@@ -244,13 +244,27 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         LOG_INFO("module", "AHBot [{}]: Considering {} auctions per interval to bid on.", _id, config->GetBidsPerInterval());
     }
 
-    for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
+    uint32 count_of_no_bids = 0;
+
+    if (config->GetBidsPerInterval() > auctionsGuidsToConsider.size()) {
+        count_of_no_bids = auctionsGuidsToConsider.size();
+    } else {
+        count_of_no_bids = config->GetBidsPerInterval();
+    }
+
+    if (count_of_no_bids == 0) {
+        return;
+    }
+
+    //auctionsGuidsToConsider.size()
+    
+    for (uint32 count = 1; count <= count_of_no_bids; ++count)
     {
         //
         // Choose a random auction from possible auctions
         //
 
-        uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
+        uint32 randomIndex = urand(0, count_of_no_bids - 1);
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         //std::advance(it, randomIndex);
@@ -400,6 +414,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
         // Check our bid is high enough to be valid. If not, correct it to minimum.
         //
+
         uint32 minimumOutbid = auction->GetAuctionOutBid();
         if ((currentPrice + minimumOutbid) > bidPrice)
         {
@@ -510,6 +525,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             }
         }
     }
+
 }
 
 // =============================================================================
