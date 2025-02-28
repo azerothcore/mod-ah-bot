@@ -252,8 +252,10 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     if (ahContentQueryResultNeedToBind) {
         if (ahContentQueryResultNeedToBind->GetRowCount() > 0) {
-            if (dynamic_count_of_binds > ahContentQueryResultNeedToBind->GetRowCount()) {
-                dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount();
+            if (ahContentQueryResultNeedToBind->GetRowCount() == 1) {
+                dynamic_count_of_binds = 1;
+            } else {
+                dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount() - 1;
             }
         }
     }
