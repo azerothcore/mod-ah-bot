@@ -213,12 +213,14 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     //
 
     AuctionHouseObject* auctionHouseObject = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
-    std::vector<uint32> auctionsGuidsToConsider;
+    //std::vector<uint32> auctionsGuidsToConsider;
+    std::set<uint32> auctionsGuidsToConsider;
 
     do
     {
         uint32 autionGuid = ahContentQueryResult->Fetch()->Get<uint32>();
-        auctionsGuidsToConsider.push_back(autionGuid);
+        //auctionsGuidsToConsider.push_back(autionGuid);
+        auctionsGuidsToConsider.insert(autionGuid);
     } while (ahContentQueryResult->NextRow());
 
     //
@@ -252,24 +254,24 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
 
-        std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        //std::advance(it, randomIndex);
+        //std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        std::set<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        std::advance(itBegin, randomIndex);
 
-        uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
+        //uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
 
-        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
-
+        AuctionEntry *auction = auctionHouseObject->GetAuction(*itBegin);
         //
         // Prevent to bid again on the same auction
         //
-
-        auctionsGuidsToConsider.erase(itBegin + randomIndex);
+        auctionPool.erase(itBegin);
+        //auctionsGuidsToConsider.erase(itBegin + randomIndex);
 
         if (!auction)
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auctionID);
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, *itBegin);
             }
             continue;
         }
@@ -309,7 +311,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
         // Determine current price.
         //
-        
+
         uint32 currentPrice = static_cast<uint32>(auction->bid ? auction->bid : auction->startbid);
 
         //
