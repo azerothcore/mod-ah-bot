@@ -275,19 +275,39 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
 
         uint32 randomIndex = urand(0, dynamic_count_of_binds - 1);
+        if (!randomIndex) {
+            LOG_INFO("module", "AHBot [{}]: !randomIndex!", _id);
+            continue;
+        }
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        if (!itBegin) {
+            LOG_INFO("module", "AHBot [{}]: !itBegin!", _id);
+            continue;
+        }
         //std::advance(it, randomIndex);
 
         uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
+        if (!auctionID) {
+            LOG_INFO("module", "AHBot [{}]: !auctionID!", _id);
+            continue;
+        }
 
         AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
+
+        if (!auction) {
+            LOG_INFO("module", "AHBot [{}]: !auction!", _id);
+            continue;
+        }
 
         //
         // Prevent to bid again on the same auction
         //
 
         auctionsGuidsToConsider.erase(itBegin + randomIndex);
+
+        LOG_INFO("module", "AHBot [{}]: auctionsGuidsToConsider", _id);
+
 
         if (!auction)
         {
@@ -304,6 +324,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         if (gBotsId.find(auction->owner.GetCounter()) != gBotsId.end())
         {
+            LOG_INFO("module", "AHBot [{}]: Prevent from buying items from the other bots", _id);
             continue;
         }
 
