@@ -253,22 +253,33 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         std::advance(itBegin, randomIndex);
-        AuctionEntry* auction = auctionHouseObject->GetAuction(*itBegin);
+        AuctionEntry *auction = auctionHouseObject->GetAuction(*itBegin);
 
         //
         // Prevent to bid again on the same auction
         //
-
-        auctionsGuidsToConsider.erase(itBegin);
+        
+        try
+        {
+            auctionsGuidsToConsider.erase(itBegin);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR("module", "AHBot [{}]: auctionsGuidsToConsider: {}", _id, auction->Id);
+        }
+        
+        
 
         if (!auction)
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, *itBegin);
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auction->Id);
             }
             continue;
         }
+
+        LOG_INFO("module", "AHBot [{}]: Auction #{}: GOGO FIND AND OTHER!", _id, auction->Id);
 
         //
         // Prevent from buying items from the other bots
@@ -301,7 +312,6 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
 
         ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
-
 
         //
         // Determine current price.
