@@ -281,10 +281,8 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         }
 
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        if (!itBegin) {
-            LOG_INFO("module", "AHBot [{}]: !itBegin!", _id);
-            continue;
-        }
+        LOG_INFO("module", "AHBot [{}]: itBegin!", _id);
+
         //std::advance(it, randomIndex);
 
         uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
