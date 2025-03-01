@@ -263,7 +263,9 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     }
 
     // CrashFix
+    LOG_INFO("module", "AHBot [{}]: CRASHFIX THIS!", _id);
     uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
+    LOG_INFO("module", "AHBot [{}]: CRASHFIX THIS END!", _id);
     //dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config->GetAHID());
 
     for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
@@ -1037,7 +1039,6 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
 
 void AuctionHouseBot::Update()
 {
-    LOG_INFO("module", "AHBot [{}]: HELLO!", _id);
     time_t _newrun = time(NULL);
 
     //
@@ -1131,13 +1132,14 @@ void AuctionHouseBot::Update()
             LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral...", _id);
         }
         Sell(&_AHBplayer, _neutralConfig);
-
+        LOG_INFO("module", "AHBot [{}]: SELL READY PARASOLKA!", _id);
         if (((_newrun - _lastrun_n_sec) >= (_neutralConfig->GetBiddingInterval() * MINUTE)) && (_neutralConfig->GetBidsPerInterval() > 0))
         {
             if (_neutralConfig->TraceBuyer)
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
+            LOG_INFO("module", "AHBot [{}]: GO BUY!", _id);
             Buy(&_AHBplayer, _neutralConfig, &_session);
             _lastrun_n_sec = _newrun;
         }
