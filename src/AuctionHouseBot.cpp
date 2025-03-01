@@ -264,7 +264,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
         // Prevent to bid again on the same auction
         //
-        auctionPool.erase(itBegin);
+        auctionsGuidsToConsider.erase(itBegin);
         //auctionsGuidsToConsider.erase(itBegin + randomIndex);
 
         if (!auction)
