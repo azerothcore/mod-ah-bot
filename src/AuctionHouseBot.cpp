@@ -213,12 +213,12 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     //
 
     AuctionHouseObject* auctionHouseObject = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
-    std::set<uint32> auctionsGuidsToConsider;
+    std::vector<uint32> auctionsGuidsToConsider;
 
     do
     {
         uint32 autionGuid = ahContentQueryResult->Fetch()->Get<uint32>();
-        auctionsGuidsToConsider.insert(autionGuid);
+        auctionsGuidsToConsider.push_back(autionGuid);
     } while (ahContentQueryResult->NextRow());
 
     //
@@ -246,28 +246,33 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
     {
-        LOG_INFO("module", "AHBot [{}]: Start For!", _id);
         //
         // Choose a random auction from possible auctions
         //
 
         uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
-        LOG_INFO("module", "AHBot [{}]: randomIndex: {} !", _id, randomIndex);
-        std::set<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        std::advance(itBegin, randomIndex);
-        AuctionEntry *auction = auctionHouseObject->GetAuction(*itBegin);
-        auctionsGuidsToConsider.erase(itBegin); // Prevent to bid again on the same auction
-        
+
+        std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        //std::advance(it, randomIndex);
+
+        uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
+
+        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
+
+        //
+        // Prevent to bid again on the same auction
+        //
+
+        auctionsGuidsToConsider.erase(itBegin + randomIndex);
+
         if (!auction)
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auction->Id);
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auctionID);
             }
             continue;
         }
-
-        LOG_INFO("module", "AHBot [{}]: Auction #{}: GOGO FIND AND OTHER!", _id, auction->Id);
 
         //
         // Prevent from buying items from the other bots
@@ -275,7 +280,6 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         if (gBotsId.find(auction->owner.GetCounter()) != gBotsId.end())
         {
-            LOG_INFO("module", "AHBot [{}]: Prevent from buying items from the other bots", _id);
             continue;
         }
 
@@ -301,10 +305,12 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(auction->item_template);
 
+
         //
         // Determine current price.
         //
-        uint32 currentPrice = auction->bid ? auction->bid : auction->startbid;
+        
+        uint32 currentPrice = static_cast<uint32>(auction->bid ? auction->bid : auction->startbid);
 
         //
         // Determine maximum bid and skip auctions with too high a currentPrice.
@@ -388,8 +394,9 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
 
         double bidRate = static_cast<double>(urand(1, 100)) / 100;
-        uint32 bidValue = static_cast<uint32>(currentPrice + ((maximumBid - currentPrice) * bidRate));
+        double bidValue = currentPrice + ((maximumBid - currentPrice) * bidRate);
         uint32 bidPrice = static_cast<uint32>(bidValue);
+
 
         //
         // Check our bid is high enough to be valid. If not, correct it to minimum.
@@ -1102,14 +1109,13 @@ void AuctionHouseBot::Update()
             LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral...", _id);
         }
         Sell(&_AHBplayer, _neutralConfig);
-        LOG_INFO("module", "AHBot [{}]: SELL READY PARASOLKA!", _id);
+
         if (((_newrun - _lastrun_n_sec) >= (_neutralConfig->GetBiddingInterval() * MINUTE)) && (_neutralConfig->GetBidsPerInterval() > 0))
         {
             if (_neutralConfig->TraceBuyer)
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
-            LOG_INFO("module", "AHBot [{}]: GO BUY!", _id);
             Buy(&_AHBplayer, _neutralConfig, &_session);
             _lastrun_n_sec = _newrun;
         }
