@@ -50,7 +50,7 @@ private:
     //
     // Main operations
     //
-    uint32 CrashFix(uint32 dynamic_count_of_binds, uint32 _id, AHBConfig *config);
+    uint32 CrashFix(uint32 dynamic_count_of_binds, uint32 _id);
     void Sell(Player *AHBplayer, AHBConfig *config);
     void Buy (Player *AHBplayer, AHBConfig *config, WorldSession *session);
 
