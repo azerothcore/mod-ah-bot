@@ -322,8 +322,8 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Determine maximum bid and skip auctions with too high a currentPrice.
         //
 
-        double basePrice = config->UseBuyPriceForBuyer ? prototype->BuyPrice : prototype->SellPrice;
-        double maximumBid = basePrice * pItem->GetCount() * config->GetBuyerPrice(prototype->Quality);
+        uint32 basePrice = static_cast<uint32>(config->UseBuyPriceForBuyer ? prototype->BuyPrice : prototype->SellPrice);
+        uint32 maximumBid = static_cast<uint32>(basePrice * pItem->GetCount() * config->GetBuyerPrice(prototype->Quality));
 
         if (config->TraceBuyer)
         {
@@ -400,7 +400,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         //
 
         double bidRate = static_cast<double>(urand(1, 100)) / 100;
-        double bidValue = currentPrice + ((maximumBid - currentPrice) * bidRate);
+        uint32 bidValue = static_cast<uint32>(currentPrice + ((maximumBid - currentPrice) * bidRate));
         uint32 bidPrice = static_cast<uint32>(bidValue);
 
         //
@@ -409,7 +409,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         uint32 minimumOutbid = auction->GetAuctionOutBid();
         if ((currentPrice + minimumOutbid) > bidPrice)
         {
-            bidPrice = currentPrice + minimumOutbid;
+            bidPrice = static_cast<uint32>(currentPrice + minimumOutbid);
         }
 
         if (bidPrice > maximumBid)
@@ -418,7 +418,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             {
                 LOG_INFO("module", "AHBot [{}]: Bid was above bidMax for item={} AH={}", _id, auction->item_guid.ToString(), config->GetAHID());
             }
-            bidPrice = uint32(maximumBid);
+            bidPrice = static_cast<uint32>(maximumBid);
         }
 
         if (config->DebugOutBuyer)
