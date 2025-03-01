@@ -173,19 +173,17 @@ uint32 AuctionHouseBot::getNofAuctions(AHBConfig* config, AuctionHouseObject* au
 }
 
 
-uint32 AuctionHouseBot::CrashFix(uint32 dynamic_count_of_binds, uint32 _id, AHBConfig* config){
+uint32 AuctionHouseBot::CrashFix(uint32 dynamic_count_of_binds, uint32 _id){
     // Fix Crash Error
-    if (config->CrashFix) {
-        QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid={}", config->GetAHID(), _id, 0);
-        if (!ahContentQueryResultNeedToBind) {
-            dynamic_count_of_binds = 1;
-        } else {
-            if (ahContentQueryResultNeedToBind->GetRowCount() > 0) {
-                if (ahContentQueryResultNeedToBind->GetRowCount() == 1) {
-                    dynamic_count_of_binds = 1;
-                } else {
-                    dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount() - 1;
-                }
+    QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid={}", config->GetAHID(), _id, 0);
+    if (!ahContentQueryResultNeedToBind) {
+        dynamic_count_of_binds = 1;
+    } else {
+        if (ahContentQueryResultNeedToBind->GetRowCount() > 0) {
+            if (ahContentQueryResultNeedToBind->GetRowCount() == 1) {
+                dynamic_count_of_binds = 1;
+            } else {
+                dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount() - 1;
             }
         }
     }
@@ -266,7 +264,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     // CrashFix
     uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
-    dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config);
+    // dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config);
 
     for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
     {

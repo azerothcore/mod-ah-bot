@@ -160,10 +160,6 @@ private:
     void IncItemCounts(uint32 ahbotItemType);
 
 public:
-    // CrashFix
-    
-    bool   CrashFix = false;
-
     //
     // Debugging
     //
