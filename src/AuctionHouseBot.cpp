@@ -264,8 +264,8 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     // CrashFix
     uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
-    // dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config->GetAHID());
-    
+    //dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config->GetAHID());
+
     for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
     {
         //
@@ -1037,6 +1037,7 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
 
 void AuctionHouseBot::Update()
 {
+    LOG_INFO("module", "AHBot [{}]: HELLO!", _id);
     time_t _newrun = time(NULL);
 
     //
