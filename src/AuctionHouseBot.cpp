@@ -403,7 +403,6 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         double bidValue = currentPrice + ((maximumBid - currentPrice) * bidRate);
         uint32 bidPrice = static_cast<uint32>(bidValue);
 
-
         //
         // Check our bid is high enough to be valid. If not, correct it to minimum.
         //
@@ -419,7 +418,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
             {
                 LOG_INFO("module", "AHBot [{}]: Bid was above bidMax for item={} AH={}", _id, auction->item_guid.ToString(), config->GetAHID());
             }
-            bidPrice = maximumBid;
+            bidPrice = uint32(maximumBid);
         }
 
         if (config->DebugOutBuyer)
