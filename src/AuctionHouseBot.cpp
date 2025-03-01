@@ -172,24 +172,6 @@ uint32 AuctionHouseBot::getNofAuctions(AHBConfig* config, AuctionHouseObject* au
     return count;
 }
 
-
-uint32 AuctionHouseBot::CrashFix(uint32 dynamic_count_of_binds, uint32 _id, uint32 _ahid){
-    // Fix Crash Error
-    QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid={}", _ahid, _id, 0);
-    if (!ahContentQueryResultNeedToBind) {
-        dynamic_count_of_binds = 1;
-    } else {
-        if (ahContentQueryResultNeedToBind->GetRowCount() > 0) {
-            if (ahContentQueryResultNeedToBind->GetRowCount() == 1) {
-                dynamic_count_of_binds = 1;
-            } else {
-                dynamic_count_of_binds = ahContentQueryResultNeedToBind->GetRowCount() - 1;
-            }
-        }
-    }
-    return dynamic_count_of_binds;
-}
-
 // =============================================================================
 // This routine performs the bidding/buyout operations for the bot
 // =============================================================================
@@ -262,50 +244,22 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         LOG_INFO("module", "AHBot [{}]: Considering {} auctions per interval to bid on.", _id, config->GetBidsPerInterval());
     }
 
-    // CrashFix
-    LOG_INFO("module", "AHBot [{}]: CRASHFIX THIS!", _id);
-    uint32 dynamic_count_of_binds = config->GetBidsPerInterval();
-    LOG_INFO("module", "AHBot [{}]: CRASHFIX THIS END!", _id);
-    //dynamic_count_of_binds = CrashFix(dynamic_count_of_binds, _id, config->GetAHID());
-
-    for (uint32 count = 1; count <= dynamic_count_of_binds; ++count)
+    for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
     {
         //
         // Choose a random auction from possible auctions
         //
 
-        uint32 randomIndex = urand(0, dynamic_count_of_binds - 1);
-        if (!randomIndex) {
-            LOG_INFO("module", "AHBot [{}]: !randomIndex!", _id);
-            continue;
-        }
-
+        uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        LOG_INFO("module", "AHBot [{}]: itBegin!", _id);
-
-        //std::advance(it, randomIndex);
-
-        uint32 auctionID = auctionsGuidsToConsider.at(randomIndex);
-        if (!auctionID) {
-            LOG_INFO("module", "AHBot [{}]: !auctionID!", _id);
-            continue;
-        }
-
-        AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
-
-        if (!auction) {
-            LOG_INFO("module", "AHBot [{}]: !auction!", _id);
-            continue;
-        }
+        std::advance(itBegin, randomIndex);
+        AuctionEntry* auction = auctionHouseObject->GetAuction(*itBegin);
 
         //
         // Prevent to bid again on the same auction
         //
 
-        auctionsGuidsToConsider.erase(itBegin + randomIndex);
-
-        LOG_INFO("module", "AHBot [{}]: auctionsGuidsToConsider", _id);
-
+        auctionsGuidsToConsider.erase(itBegin);
 
         if (!auction)
         {
