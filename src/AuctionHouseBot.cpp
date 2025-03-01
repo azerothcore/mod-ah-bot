@@ -213,14 +213,12 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     //
 
     AuctionHouseObject* auctionHouseObject = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
-    //std::vector<uint32> auctionsGuidsToConsider;
-    std::set<uint32> auctionsGuidsToConsider;
+    std::vector<uint32> auctionsGuidsToConsider;
 
     do
     {
         uint32 autionGuid = ahContentQueryResult->Fetch()->Get<uint32>();
-        //auctionsGuidsToConsider.push_back(autionGuid);
-        auctionsGuidsToConsider.insert(autionGuid);
+        auctionsGuidsToConsider.push_back(autionGuid);
     } while (ahContentQueryResult->NextRow());
 
     //
@@ -248,13 +246,11 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
     {
-        //
-        // Choose a random auction from possible auctions
-        //
-
-        std::set<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
-        uint32 auctionID = *itBegin;
+        
+        std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        uint32 auctionID = auctionsGuidsToConsider.at(*itBegin);
         AuctionEntry* auction = auctionHouseObject->GetAuction(auctionID);
+
         //
         // Prevent to bid again on the same auction
         //
