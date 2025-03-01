@@ -265,7 +265,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         {
             if (config->DebugOutBuyer)
             {
-                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, auctionID);
+                LOG_ERROR("module", "AHBot [{}]: Auction id: {} Possible entry to buy/bid from AH pool is invalid, this should not happen, moving on next auciton", _id, *itBegin);
             }
             continue;
         }
