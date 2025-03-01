@@ -173,7 +173,7 @@ uint32 AuctionHouseBot::getNofAuctions(AHBConfig* config, AuctionHouseObject* au
 }
 
 
-uint32 AuctionHouseBot::CrashFix(uint32 dynamic_count_of_binds, uint32 _id){
+uint32 AuctionHouseBot::CrashFix(uint32* dynamic_count_of_binds, uint32* _id, AHBConfig* config){
     // Fix Crash Error
     if (config->CrashFix) {
         QueryResult ahContentQueryResultNeedToBind = CharacterDatabase.Query("SELECT id FROM auctionhouse WHERE houseid={} AND itemowner<>{} AND buyguid={}", config->GetAHID(), _id, 0);
