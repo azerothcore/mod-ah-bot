@@ -218,7 +218,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     do
     {
         uint32 autionGuid = ahContentQueryResult->Fetch()->Get<uint32>();
-        auctionsGuidsToConsider.push_back(autionGuid);
+        auctionsGuidsToConsider.insert(autionGuid);
     } while (ahContentQueryResult->NextRow());
 
     //
@@ -246,30 +246,18 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
     for (uint32 count = 1; count <= config->GetBidsPerInterval(); ++count)
     {
+        LOG_INFO("module", "AHBot [{}]: Start For!", _id);
         //
         // Choose a random auction from possible auctions
         //
 
         uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
+        LOG_INFO("module", "AHBot [{}]: randomIndex: {} !", _id, randomIndex);
         std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         std::advance(itBegin, randomIndex);
         AuctionEntry *auction = auctionHouseObject->GetAuction(*itBegin);
-
-        //
-        // Prevent to bid again on the same auction
-        //
+        auctionsGuidsToConsider.erase(itBegin); // Prevent to bid again on the same auction
         
-        try
-        {
-            auctionsGuidsToConsider.erase(itBegin);
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR("module", "AHBot [{}]: auctionsGuidsToConsider: {}", _id, auction->Id);
-        }
-        
-        
-
         if (!auction)
         {
             if (config->DebugOutBuyer)
