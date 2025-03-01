@@ -192,6 +192,7 @@ AHBConfig::AHBConfig(uint32 ahid, AHBConfig* conf)
     // Copy the public properties
     //
 
+    CrashFix                       = conf->CrashFix;
     DebugOut                       = conf->DebugOut;
     DebugOutConfig                 = conf->DebugOutConfig;
     DebugOutFilters                = conf->DebugOutFilters;
@@ -496,6 +497,7 @@ void AHBConfig::Reset()
     // Public properties
     //
 
+    CrashFix                       = false;
     DebugOut                       = false;
     DebugOutConfig                 = false;
     DebugOutFilters                = false;
@@ -2059,6 +2061,7 @@ void AHBConfig::InitializeFromFile()
     // Load from, the configuration file
     //
 
+    CrashFix                       = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.CrashFix"     , false);
     DebugOut                       = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.DEBUG"        , false);
     DebugOutConfig                 = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.DEBUG_CONFIG" , false);
     DebugOutFilters                = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.DEBUG_FILTERS", false);
