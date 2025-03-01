@@ -213,7 +213,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
     //
 
     AuctionHouseObject* auctionHouseObject = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
-    std::vector<uint32> auctionsGuidsToConsider;
+    std::set<uint32> auctionsGuidsToConsider;
 
     do
     {
@@ -253,7 +253,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
 
         uint32 randomIndex = urand(0, auctionsGuidsToConsider.size() - 1);
         LOG_INFO("module", "AHBot [{}]: randomIndex: {} !", _id, randomIndex);
-        std::vector<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
+        std::set<uint32>::iterator itBegin = auctionsGuidsToConsider.begin();
         std::advance(itBegin, randomIndex);
         AuctionEntry *auction = auctionHouseObject->GetAuction(*itBegin);
         auctionsGuidsToConsider.erase(itBegin); // Prevent to bid again on the same auction
