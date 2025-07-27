@@ -58,7 +58,10 @@ WHERE (
     NAME LIKE '%deprecated%' OR 
     NAME LIKE '%book%' OR 
     NAME LIKE '%libram%' OR 
-    NAME LIKE '%guide%'
+    NAME LIKE '%guide%' OR
+    NAME LIKE '%90 Epic%' OR
+    NAME LIKE '%90 Blue%' OR
+    NAME LIKE '%90 Green%'
 )
 OR UPPER(NAME) LIKE '%OLD%' 
 OR UPPER(NAME) LIKE '%NPC%' 
