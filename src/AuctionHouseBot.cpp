@@ -132,13 +132,13 @@ uint32 AuctionHouseBot::getElapsedTime(uint32 timeClass)
     switch (timeClass)
     {
     case 2:
-        return urand(1, 5) * 600;   // SHORT = In the range of one hour
+        return urand(1, 6) * 600;   // SHORT = From 10 to 60 minutes
 
     case 1:
-        return urand(1, 23) * 3600; // MEDIUM = In the range of one day
+        return urand(1, 24) * 3600; // MEDIUM = From 1 to 24 hours
 
     default:
-        return urand(1, 3) * 86400; // LONG = More than one day but less than three
+        return urand(24, 72) * 3600; // LONG = From 1 to 3 days
     }
 }
 
@@ -1028,7 +1028,7 @@ void AuctionHouseBot::Update()
 
     std::string accountName = "AuctionHouseBot" + std::to_string(_account);
 
-    WorldSession _session(_account, std::move(accountName), nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), 0, LOCALE_enUS, 0, false, false, 0);
+    WorldSession _session(_account, std::move(accountName), 0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), 0, LOCALE_enUS, 0, false, false, 0);
 
     Player _AHBplayer(&_session);
     _AHBplayer.Initialize(_id);
