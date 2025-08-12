@@ -1028,10 +1028,11 @@ void AuctionHouseBot::Update()
 
     std::string accountName = "AuctionHouseBot" + std::to_string(_account);
 
-    WorldSession _session(_account, std::move(accountName), 0x0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), time_t(0), LOCALE_enUS, 0, false, false, 0, true);
+    WorldSession _ahbot_session(_account, std::move(accountName), 0x0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), time_t(0), LOCALE_enUS, 0, false, false, 0);
+    Player _AHBplayer(&_ahbot_session);
+    //_AHBplayer.Initialize(_id);
+
     
-    Player _AHBplayer(&_session);
-    _AHBplayer.Initialize(_id);
 
     ObjectAccessor::AddObject(&_AHBplayer);
 
