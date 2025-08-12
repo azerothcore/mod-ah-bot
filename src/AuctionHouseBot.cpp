@@ -311,7 +311,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Determine maximum bid and skip auctions with too high a currentPrice.
         //
 
-        uint32 basePrice = static_cast<uint32>(config->UseBuyPriceForBuyer ? prototype->BuyPrice : prototype->SellPrice);
+        uint32 basePrice = static_cast<uint32>((config->UseBuyPriceForBuyer && prototype->BuyPrice > 0) ? prototype->BuyPrice : prototype->SellPrice);
         uint32 maximumBid = static_cast<uint32>(basePrice * pItem->GetCount() * config->GetBuyerPrice(prototype->Quality));
 
         if (config->TraceBuyer)
@@ -1028,9 +1028,8 @@ void AuctionHouseBot::Update()
 
     std::string accountName = "AuctionHouseBot" + std::to_string(_account);
 
-    WorldSession _session(_account, std::move(accountName), 0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), 0, LOCALE_enUS, 0, false, false, 0);
-
-    Player _AHBplayer(&_session);
+    WorldSession _ahbot_session(_account, std::move(accountName), 0x0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), time_t(0), LOCALE_enUS, 0, false, false, 0);
+    Player _AHBplayer(&_ahbot_session);
     _AHBplayer.Initialize(_id);
 
     ObjectAccessor::AddObject(&_AHBplayer);
@@ -1063,7 +1062,7 @@ void AuctionHouseBot::Update()
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance...", _id);
                 }
 
-                Buy(&_AHBplayer, _allianceConfig, &_session);
+                Buy(&_AHBplayer, _allianceConfig, &_ahbot_session);
                 _lastrun_a_sec = _newrun;
             }
         }
@@ -1086,7 +1085,7 @@ void AuctionHouseBot::Update()
                 {
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde...", _id);
                 }
-                Buy(&_AHBplayer, _hordeConfig, &_session);
+                Buy(&_AHBplayer, _hordeConfig, &_ahbot_session);
                 _lastrun_h_sec = _newrun;
             }
         }
@@ -1111,7 +1110,7 @@ void AuctionHouseBot::Update()
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
-            Buy(&_AHBplayer, _neutralConfig, &_session);
+            Buy(&_AHBplayer, _neutralConfig, &_ahbot_session);
             _lastrun_n_sec = _newrun;
         }
     }
