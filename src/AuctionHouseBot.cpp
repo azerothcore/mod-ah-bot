@@ -311,7 +311,7 @@ void AuctionHouseBot::Buy(Player* AHBplayer, AHBConfig* config, WorldSession* se
         // Determine maximum bid and skip auctions with too high a currentPrice.
         //
 
-        uint32 basePrice = static_cast<uint32>(config->UseBuyPriceForBuyer ? prototype->BuyPrice : prototype->SellPrice);
+        uint32 basePrice = static_cast<uint32>((config->UseBuyPriceForBuyer && prototype->BuyPrice > 0) ? prototype->BuyPrice : prototype->SellPrice);
         uint32 maximumBid = static_cast<uint32>(basePrice * pItem->GetCount() * config->GetBuyerPrice(prototype->Quality));
 
         if (config->TraceBuyer)
