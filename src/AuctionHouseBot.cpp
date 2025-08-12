@@ -1064,7 +1064,7 @@ void AuctionHouseBot::Update()
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance...", _id);
                 }
 
-                Buy(&_AHBplayer, _allianceConfig, &_session);
+                Buy(&_AHBplayer, _allianceConfig, &_ahbot_session);
                 _lastrun_a_sec = _newrun;
             }
         }
@@ -1087,7 +1087,7 @@ void AuctionHouseBot::Update()
                 {
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde...", _id);
                 }
-                Buy(&_AHBplayer, _hordeConfig, &_session);
+                Buy(&_AHBplayer, _hordeConfig, &_ahbot_session);
                 _lastrun_h_sec = _newrun;
             }
         }
@@ -1112,7 +1112,7 @@ void AuctionHouseBot::Update()
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
-            Buy(&_AHBplayer, _neutralConfig, &_session);
+            Buy(&_AHBplayer, _neutralConfig, &_ahbot_session);
             _lastrun_n_sec = _newrun;
         }
     }
