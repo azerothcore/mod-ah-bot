@@ -25,9 +25,15 @@
 #include "GameTime.h"
 #include "DatabaseEnv.h"
 #include "ScriptMgr.h"
+#include "ObjectAccessor.h"
+#include "StringFormat.h"
+#include "Item.h"
+#include "CharacterCache.h"
+#include "Log.h"
 
 #include "AuctionHouseBot.h"
 #include "AuctionHouseBotCommon.h"
+#include "AuctionHouseBotConfig.h"
 #include "AuctionHouseSearcher.h"
 
 using namespace std;
@@ -1005,6 +1011,197 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
     }
 }
 
+Player* AuctionHouseBot::AcquireAHBplayer(Player& tempPlayer, bool& addedToAccessor)
+{
+    ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(_id);
+
+    // Seller GUID must stay offline. Classic AHBot always uses a temporary Player.
+    // If someone logs the seller in, refuse to touch ObjectAccessor / live Player*
+    // (that combination SIGSEGVs). Caller should treat nullptr as failure.
+    if (ObjectAccessor::FindConnectedPlayer(guid))
+    {
+        LOG_ERROR("module", "AHBot [{}]: seller character is online; auction ops require it offline", _id);
+        addedToAccessor = false;
+        return nullptr;
+    }
+
+    tempPlayer.Initialize(_id);
+    ObjectAccessor::AddObject(&tempPlayer);
+    addedToAccessor = true;
+    return &tempPlayer;
+}
+
+void AuctionHouseBot::ReleaseAHBplayer(Player& tempPlayer, bool addedToAccessor)
+{
+    if (addedToAccessor)
+        ObjectAccessor::RemoveObject(&tempPlayer);
+}
+
+AuctionHouseBot::OrderResult AuctionHouseBot::SellOrderedItem(uint32 itemId, uint32 quantity)
+{
+    OrderResult result;
+
+    ItemTemplate const* prototype = sObjectMgr->GetItemTemplate(itemId);
+    if (!prototype)
+    {
+        result.error = "物品不存在";
+        return result;
+    }
+    result.itemName = prototype->Name1;
+
+    if (prototype->Bonding == BIND_WHEN_PICKED_UP)
+    {
+        result.error = "拾取绑定物品不能上架";
+        return result;
+    }
+    if (prototype->Bonding == BIND_QUEST_ITEM)
+    {
+        result.error = "任务物品不能上架";
+        return result;
+    }
+    if (prototype->BuyPrice == 0 && prototype->SellPrice == 0)
+    {
+        result.error = "物品没有价格，无法上架";
+        return result;
+    }
+    if (prototype->Quality > AHB_MAX_QUALITY)
+    {
+        result.error = "物品品质不受支持";
+        return result;
+    }
+
+    uint32 maxStack = prototype->GetMaxStackSize();
+    if (maxStack == 0)
+        maxStack = 1;
+
+    if (quantity == 0)
+    {
+        result.error = "数量无效";
+        return result;
+    }
+    if (quantity > maxStack * 20u)
+    {
+        result.error = Acore::StringFormat("数量过大（上限 {}）", maxStack * 20u);
+        return result;
+    }
+
+    // Pick AH config: neutral-only when two-side AH is on; otherwise seller race.
+    // Do NOT use a temp Player::GetTeamId() after Initialize-only — that does not
+    // load race and was listing Alliance sellers onto the Horde AH (house 6).
+    AHBConfig* config = gNeutralConfig;
+    if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION))
+    {
+        TeamId team = TEAM_NEUTRAL;
+        if (CharacterCacheEntry const* info = sCharacterCache->GetCharacterCacheByGuid(
+                ObjectGuid::Create<HighGuid::Player>(_id)))
+            team = Player::TeamIdForRace(info->Race);
+
+        if (team == TEAM_ALLIANCE)
+            config = gAllianceConfig;
+        else if (team == TEAM_HORDE)
+            config = gHordeConfig;
+        else
+        {
+            result.error = "无法确定拍卖行阵营";
+            return result;
+        }
+    }
+
+    if (!config)
+    {
+        result.error = "拍卖行未就绪";
+        return result;
+    }
+
+    AuctionHouseEntry const* ahEntry = sAuctionMgr->GetAuctionHouseEntryFromFactionTemplate(config->GetAHFID());
+    AuctionHouseObject* auctionHouse = sAuctionMgr->GetAuctionsMap(config->GetAHFID());
+    if (!ahEntry || !auctionHouse)
+    {
+        result.error = "拍卖行未就绪";
+        return result;
+    }
+
+    std::string accountName = "AuctionHouseBot" + std::to_string(_account);
+    WorldSession session(_account, std::move(accountName), 0, nullptr, SEC_PLAYER,
+        sWorld->getIntConfig(CONFIG_EXPANSION), 0, LOCALE_enUS, 0, false, false, 0);
+    Player tempPlayer(&session);
+    bool addedToAccessor = false;
+    Player* AHBplayer = AcquireAHBplayer(tempPlayer, addedToAccessor);
+    if (!AHBplayer)
+    {
+        result.error = "拍卖机器人卖家在线冲突，无法上架";
+        return result;
+    }
+
+    uint32 remaining = quantity;
+    while (remaining > 0)
+    {
+        uint32 stackCount = remaining > maxStack ? maxStack : remaining;
+
+        Item* item = Item::CreateItem(itemId, stackCount, AHBplayer);
+        if (!item)
+        {
+            result.error = result.listedQuantity
+                ? Acore::StringFormat("部分上架失败（已上架 {}）", result.listedQuantity)
+                : "创建物品失败";
+            break;
+        }
+
+        item->AddToUpdateQueueOf(AHBplayer);
+        if (uint32 randomPropertyId = Item::GenerateItemRandomPropertyId(itemId))
+            item->SetItemRandomProperties(randomPropertyId);
+
+        uint64 buyoutPrice = config->GetItemPrice(itemId);
+        if (buyoutPrice == 0)
+            buyoutPrice = config->UseBuyPriceForSeller ? prototype->BuyPrice : prototype->SellPrice;
+
+        buyoutPrice = buyoutPrice * urand(config->GetMinPrice(prototype->Quality), config->GetMaxPrice(prototype->Quality));
+        buyoutPrice = buyoutPrice / 100;
+        uint64 bidPrice = buyoutPrice * urand(config->GetMinBidPrice(prototype->Quality), config->GetMaxBidPrice(prototype->Quality));
+        bidPrice = bidPrice / 100;
+
+        uint32 elapsingTime = getElapsedTime(config->ElapsingTimeClass);
+        uint32 deposit = sAuctionMgr->GetAuctionDeposit(ahEntry, elapsingTime, item, stackCount);
+
+        auto trans = CharacterDatabase.BeginTransaction();
+        AuctionEntry* auctionEntry = new AuctionEntry();
+        auctionEntry->Id = sObjectMgr->GenerateAuctionID();
+        auctionEntry->houseId = AuctionHouseId(config->GetAHID());
+        auctionEntry->item_guid = item->GetGUID();
+        auctionEntry->item_template = item->GetEntry();
+        auctionEntry->itemCount = item->GetCount();
+        auctionEntry->owner = AHBplayer->GetGUID();
+        auctionEntry->startbid = bidPrice * stackCount;
+        auctionEntry->buyout = buyoutPrice * stackCount;
+        auctionEntry->bid = 0;
+        auctionEntry->deposit = deposit;
+        auctionEntry->expire_time = (time_t)elapsingTime + time(nullptr);
+        auctionEntry->auctionHouseEntry = ahEntry;
+
+        item->SaveToDB(trans);
+        item->RemoveFromUpdateQueueOf(AHBplayer);
+        sAuctionMgr->AddAItem(item);
+        auctionHouse->AddAuction(auctionEntry);
+        auctionEntry->SaveToDB(trans);
+        CharacterDatabase.CommitTransaction(trans);
+
+        result.listedQuantity += stackCount;
+        result.listedStacks += 1;
+        result.totalBid += auctionEntry->startbid;
+        result.totalBuyout += auctionEntry->buyout;
+        remaining -= stackCount;
+    }
+
+    ReleaseAHBplayer(tempPlayer, addedToAccessor);
+
+    if (result.listedQuantity == quantity)
+        result.success = true;
+    else if (result.listedQuantity == 0 && result.error.empty())
+        result.error = "上架失败";
+
+    return result;
+}
+
 // =============================================================================
 // Perform an update cycle
 // =============================================================================
@@ -1031,9 +1228,10 @@ void AuctionHouseBot::Update()
     WorldSession _session(_account, std::move(accountName), 0, nullptr, SEC_PLAYER, sWorld->getIntConfig(CONFIG_EXPANSION), 0, LOCALE_enUS, 0, false, false, 0);
 
     Player _AHBplayer(&_session);
-    _AHBplayer.Initialize(_id);
-
-    ObjectAccessor::AddObject(&_AHBplayer);
+    bool addedToAccessor = false;
+    Player* AHBplayer = AcquireAHBplayer(_AHBplayer, addedToAccessor);
+    if (!AHBplayer)
+        return;
 
     LOG_INFO("module", "AHBot [{}]: Begin Performing Update Cycle", _id);
 
@@ -1054,7 +1252,7 @@ void AuctionHouseBot::Update()
                 LOG_INFO("module", "AHBot [{}]: Begin Sell for Alliance...", _id);
             }
 
-            Sell(&_AHBplayer, _allianceConfig);
+            Sell(AHBplayer, _allianceConfig);
 
             if (((_newrun - _lastrun_a_sec) >= (_allianceConfig->GetBiddingInterval() * MINUTE)) && (_allianceConfig->GetBidsPerInterval() > 0))
             {
@@ -1063,7 +1261,7 @@ void AuctionHouseBot::Update()
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Alliance...", _id);
                 }
 
-                Buy(&_AHBplayer, _allianceConfig, &_session);
+                Buy(AHBplayer, _allianceConfig, AHBplayer->GetSession());
                 _lastrun_a_sec = _newrun;
             }
         }
@@ -1078,7 +1276,7 @@ void AuctionHouseBot::Update()
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Sell for Horde...", _id);
             }
-            Sell(&_AHBplayer, _hordeConfig);
+            Sell(AHBplayer, _hordeConfig);
 
             if (((_newrun - _lastrun_h_sec) >= (_hordeConfig->GetBiddingInterval() * MINUTE)) && (_hordeConfig->GetBidsPerInterval() > 0))
             {
@@ -1086,7 +1284,7 @@ void AuctionHouseBot::Update()
                 {
                     LOG_INFO("module", "AHBot [{}]: Begin Buy for Horde...", _id);
                 }
-                Buy(&_AHBplayer, _hordeConfig, &_session);
+                Buy(AHBplayer, _hordeConfig, AHBplayer->GetSession());
                 _lastrun_h_sec = _newrun;
             }
         }
@@ -1103,7 +1301,7 @@ void AuctionHouseBot::Update()
         {
             LOG_INFO("module", "AHBot [{}]: Begin Sell for Neutral...", _id);
         }
-        Sell(&_AHBplayer, _neutralConfig);
+        Sell(AHBplayer, _neutralConfig);
 
         if (((_newrun - _lastrun_n_sec) >= (_neutralConfig->GetBiddingInterval() * MINUTE)) && (_neutralConfig->GetBidsPerInterval() > 0))
         {
@@ -1111,12 +1309,12 @@ void AuctionHouseBot::Update()
             {
                 LOG_INFO("module", "AHBot [{}]: Begin Buy for Neutral...", _id);
             }
-            Buy(&_AHBplayer, _neutralConfig, &_session);
+            Buy(AHBplayer, _neutralConfig, AHBplayer->GetSession());
             _lastrun_n_sec = _newrun;
         }
     }
 
-    ObjectAccessor::RemoveObject(&_AHBplayer);
+    ReleaseAHBplayer(_AHBplayer, addedToAccessor);
 }
 
 // =============================================================================

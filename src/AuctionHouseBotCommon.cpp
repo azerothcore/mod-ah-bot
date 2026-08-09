@@ -20,3 +20,6 @@ AHBConfig* gNeutralConfig  = new AHBConfig(7);
 
 std::set<uint32>           gBotsId;
 std::set<AuctionHouseBot*> gBots;
+bool                       gWhisperOrders = false;
+uint32                     gWhisperOrdersAccount = 0;
+uint32                     gWhisperOrdersReceiver = 0;

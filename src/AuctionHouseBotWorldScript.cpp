@@ -2,8 +2,12 @@
  * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU AGPL v3 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE
  */
 
+#include "CharacterCache.h"
 #include "Config.h"
 #include "Log.h"
+#include "ObjectAccessor.h"
+#include "ObjectGuid.h"
+#include "RandomPlayerbotMgr.h"
 
 #include "AuctionHouseBot.h"
 #include "AuctionHouseBotCommon.h"
@@ -15,7 +19,8 @@
 
 AHBot_WorldScript::AHBot_WorldScript() : WorldScript("AHBot_WorldScript", {
     WORLDHOOK_ON_BEFORE_CONFIG_LOAD,
-    WORLDHOOK_ON_STARTUP
+    WORLDHOOK_ON_STARTUP,
+    WORLDHOOK_ON_UPDATE
 })
 {
 
@@ -30,6 +35,10 @@ void AHBot_WorldScript::OnBeforeConfigLoad(bool reload)
     bool   debug   = sConfigMgr->GetOption<bool>  ("AuctionHouseBot.DEBUG"  , false);
     uint32 account = sConfigMgr->GetOption<uint32>("AuctionHouseBot.Account", 0);
     uint32 player  = sConfigMgr->GetOption<uint32>("AuctionHouseBot.GUID"   , 0);
+
+    gWhisperOrders = sConfigMgr->GetOption<bool>("AuctionHouseBot.WhisperOrders", true);
+    gWhisperOrdersAccount = sConfigMgr->GetOption<uint32>("AuctionHouseBot.WhisperOrdersAccount", 0);
+    gWhisperOrdersReceiver = sConfigMgr->GetOption<uint32>("AuctionHouseBot.WhisperOrdersReceiverGUID", 0);
 
     //
     // All the bots bound to the provided account will be used for auctioning, if GUID is zero.
@@ -142,6 +151,46 @@ void AHBot_WorldScript::OnStartup()
     //
 
     PopulateBots();
+}
+
+void AHBot_WorldScript::OnUpdate(uint32 diff)
+{
+    if (!gWhisperOrders || _whisperLoginAttempted)
+        return;
+
+    _whisperLoginTimer += diff;
+    if (_whisperLoginTimer < 10000) // wait 10s for playerbots init
+        return;
+
+    _whisperLoginAttempted = true;
+
+    // Never log in AuctionHouseBot.GUID (seller). That character must stay offline
+    // so classic temp-Player Update()/Sell()/Buy() keep running. Login a separate
+    // clerk character that only receives whisper orders.
+    if (!gWhisperOrdersReceiver)
+    {
+        LOG_ERROR("module", "AHBot: WhisperOrders enabled but WhisperOrdersReceiverGUID is 0");
+        return;
+    }
+
+    if (gBotsId.find(gWhisperOrdersReceiver) != gBotsId.end())
+    {
+        LOG_ERROR("module", "AHBot: WhisperOrdersReceiverGUID {} must not be an AH seller GUID", gWhisperOrdersReceiver);
+        return;
+    }
+
+    ObjectGuid guid = ObjectGuid::Create<HighGuid::Player>(gWhisperOrdersReceiver);
+    if (ObjectAccessor::FindConnectedPlayer(guid))
+        return;
+
+    if (!sCharacterCache->GetCharacterAccountIdByGuid(guid))
+    {
+        LOG_ERROR("module", "AHBot: failed to keep clerk character {} online for WhisperOrders; whispers will not work until it is logged in", gWhisperOrdersReceiver);
+        return;
+    }
+
+    LOG_INFO("module", "AHBot: WhisperOrders login clerk character {}", gWhisperOrdersReceiver);
+    sRandomPlayerbotMgr.AddPlayerBot(guid, 0);
 }
 
 void AHBot_WorldScript::DeleteBots()
