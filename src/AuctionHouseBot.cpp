@@ -51,29 +51,20 @@ AuctionHouseBot::~AuctionHouseBot()
     // Nothing
 }
 
-uint32 AuctionHouseBot::getElement(std::set<uint32> set, int index, uint32 botId, uint32 maxDup, AuctionHouseObject* auctionHouse)
+uint32 AuctionHouseBot::getElement(std::set<uint32> set, int index, uint32 maxDup, std::unordered_map<uint32, uint32> const& counts)
 {
     std::set<uint32>::iterator it = set.begin();
     std::advance(it, index);
 
+    // Duplicate check. Previously this re-scanned EVERY auction in the house on
+    // every single pick (O(auctions) per item), which froze the single-threaded
+    // world loop on large auction houses. It now consults a tally built once per
+    // sell cycle in Sell(), so this is O(1).
     if (maxDup > 0)
     {
-        uint32 noStacks = 0;
+        std::unordered_map<uint32, uint32>::const_iterator found = counts.find(*it);
 
-        for (AuctionHouseObject::AuctionEntryMap::const_iterator itr = auctionHouse->GetAuctionsBegin(); itr != auctionHouse->GetAuctionsEnd(); ++itr)
-        {
-            AuctionEntry* Aentry = itr->second;
-
-            if (Aentry->owner.GetCounter() == botId)
-            {
-                if (*it == Aentry->item_template)
-                {
-                    noStacks++;
-                }
-            }
-        }
-
-        if (noStacks >= maxDup)
+        if (found != counts.end() && found->second >= maxDup)
         {
             return 0;
         }
@@ -643,6 +634,27 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
     uint32 loopBrk   = 0; // Tracing counter
     uint32 err       = 0; // Tracing counter
 
+    //
+    // Build a per-item auction tally ONCE for this cycle so the duplicate check
+    // in getElement() is O(1) instead of re-scanning the whole auction house on
+    // every pick (that per-pick scan is what freezes the world loop on large
+    // auction houses). Only needed when a duplicate cap is configured.
+    //
+    std::unordered_map<uint32, uint32> itemCounts;
+
+    if (config->DuplicatesCount > 0)
+    {
+        for (AuctionHouseObject::AuctionEntryMap::const_iterator itr = auctionHouse->GetAuctionsBegin(); itr != auctionHouse->GetAuctionsEnd(); ++itr)
+        {
+            AuctionEntry* ae = itr->second;
+
+            if (ae->owner.GetCounter() == _id)
+            {
+                ++itemCounts[ae->item_template];
+            }
+        }
+    }
+
     for (uint32 cnt = 1; cnt <= nbItemsToSellThisCycle; cnt++)
     {
         uint32 itemTypeSelectedToSell = 0;
@@ -662,13 +674,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if ((config->GreyItemsBin.size() > 0) && (currentGreyItems < maxGreyI))
             {
                 itemTypeSelectedToSell = AHB_GREY_I;
-                itemID = getElement(config->GreyItemsBin, urand(0, config->GreyItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->GreyItemsBin, urand(0, config->GreyItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->GreyTradeGoodsBin.size() > 0) && (currentGreyTG < maxGreyTG))
             {
                 itemTypeSelectedToSell = AHB_GREY_TG;
-                itemID = getElement(config->GreyTradeGoodsBin, urand(0, config->GreyTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->GreyTradeGoodsBin, urand(0, config->GreyTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Normal
@@ -676,13 +688,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->WhiteItemsBin.size() > 0) && (currentWhiteItems < maxWhiteI))
             {
                 itemTypeSelectedToSell = AHB_WHITE_I;
-                itemID = getElement(config->WhiteItemsBin, urand(0, config->WhiteItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->WhiteItemsBin, urand(0, config->WhiteItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->WhiteTradeGoodsBin.size() > 0) && (currentWhiteTG < maxWhiteTG))
             {
                 itemTypeSelectedToSell = AHB_WHITE_TG;
-                itemID = getElement(config->WhiteTradeGoodsBin, urand(0, config->WhiteTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->WhiteTradeGoodsBin, urand(0, config->WhiteTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Uncommon
@@ -690,13 +702,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->GreenItemsBin.size() > 0) && (currentGreenItems < maxGreenI))
             {
                 itemTypeSelectedToSell = AHB_GREEN_I;
-                itemID = getElement(config->GreenItemsBin, urand(0, config->GreenItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->GreenItemsBin, urand(0, config->GreenItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->GreenTradeGoodsBin.size() > 0) && (currentGreenTG < maxGreenTG))
             {
                 itemTypeSelectedToSell = AHB_GREEN_TG;
-                itemID = getElement(config->GreenTradeGoodsBin, urand(0, config->GreenTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->GreenTradeGoodsBin, urand(0, config->GreenTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Rare
@@ -704,13 +716,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->BlueItemsBin.size() > 0) && (currentBlueItems < maxBlueI))
             {
                 itemTypeSelectedToSell = AHB_BLUE_I;
-                itemID = getElement(config->BlueItemsBin, urand(0, config->BlueItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->BlueItemsBin, urand(0, config->BlueItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->BlueTradeGoodsBin.size() > 0) && (currentBlueTG < maxBlueTG))
             {
                 itemTypeSelectedToSell = AHB_BLUE_TG;
-                itemID = getElement(config->BlueTradeGoodsBin, urand(0, config->BlueTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->BlueTradeGoodsBin, urand(0, config->BlueTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Epic
@@ -718,13 +730,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->PurpleItemsBin.size() > 0) && (currentPurpleItems < maxPurpleI))
             {
                 itemTypeSelectedToSell = AHB_PURPLE_I;
-                itemID = getElement(config->PurpleItemsBin, urand(0, config->PurpleItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->PurpleItemsBin, urand(0, config->PurpleItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->PurpleTradeGoodsBin.size() > 0) && (currentPurpleTG < maxPurpleTG))
             {
                 itemTypeSelectedToSell = AHB_PURPLE_TG;
-                itemID = getElement(config->PurpleTradeGoodsBin, urand(0, config->PurpleTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->PurpleTradeGoodsBin, urand(0, config->PurpleTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Legendary
@@ -732,13 +744,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->OrangeItemsBin.size() > 0) && (currentOrangeItems < maxOrangeI))
             {
                 itemTypeSelectedToSell = AHB_ORANGE_I;
-                itemID = getElement(config->OrangeItemsBin, urand(0, config->OrangeItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->OrangeItemsBin, urand(0, config->OrangeItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->OrangeTradeGoodsBin.size() > 0) && (currentOrangeTG < maxOrangeTG))
             {
                 itemTypeSelectedToSell = AHB_ORANGE_TG;
-                itemID = getElement(config->OrangeTradeGoodsBin, urand(0, config->OrangeTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->OrangeTradeGoodsBin, urand(0, config->OrangeTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             // Artifact
@@ -746,13 +758,13 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
             if (itemID == 0 && (config->YellowItemsBin.size() > 0) && (currentYellowItems < maxYellowI))
             {
                 itemTypeSelectedToSell = AHB_YELLOW_I;
-                itemID = getElement(config->YellowItemsBin, urand(0, config->YellowItemsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->YellowItemsBin, urand(0, config->YellowItemsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0 && (config->YellowTradeGoodsBin.size() > 0) && (currentYellowTG < maxYellowTG))
             {
                 itemTypeSelectedToSell = AHB_YELLOW_TG;
-                itemID = getElement(config->YellowTradeGoodsBin, urand(0, config->YellowTradeGoodsBin.size() - 1), _id, config->DuplicatesCount, auctionHouse);
+                itemID = getElement(config->YellowTradeGoodsBin, urand(0, config->YellowTradeGoodsBin.size() - 1), config->DuplicatesCount, itemCounts);
             }
 
             if (itemID == 0)
@@ -921,6 +933,12 @@ void AuctionHouseBot::Sell(Player* AHBplayer, AHBConfig* config)
         auctionEntry->SaveToDB(trans);
 
         CharacterDatabase.CommitTransaction(trans);
+
+        // Keep this cycle's tally in sync so later picks respect the duplicate cap.
+        if (config->DuplicatesCount > 0)
+        {
+            ++itemCounts[itemID];
+        }
 
         // 
         // Increments the number of items presents in the auction
