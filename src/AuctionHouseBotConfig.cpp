@@ -2691,44 +2691,17 @@ void AHBConfig::InitializeBins()
 
         if (itr->second.Class == ITEM_CLASS_TRADE_GOODS)
         {
-            bool isNpc   = false;
-            bool isLoot  = false;
-            bool exclude = false;
+            bool isNpc  = NpcItems.find(itr->second.ItemId) != NpcItems.end();
+            bool isLoot = LootItems.find(itr->second.ItemId) != LootItems.end();
 
-            if (NpcItems.find(itr->second.ItemId) != NpcItems.end())
-            {
-                isNpc = true;
+            bool allowed =
+                (isNpc && Vendor_TGs) ||
+                (isLoot && Loot_TGs) ||
+                (!isNpc && !isLoot && Other_TGs);
 
-                if (!Vendor_TGs)
-                {
-                    exclude = true;
-                }
-            }
-
-            if (!exclude)
-            {
-                if (LootItems.find(itr->second.ItemId) != LootItems.end())
-                {
-                    isLoot = true;
-
-                    if (!Loot_TGs)
-                    {
-                        exclude = true;
-                    }
-                }
-            }
-
-            if (exclude)
+            if (!allowed)
             {
                 continue;
-            }
-
-            if (!Other_TGs)
-            {
-                if (!isNpc && !isLoot)
-                {
-                    continue;
-                }
             }
         }
 
@@ -2738,44 +2711,17 @@ void AHBConfig::InitializeBins()
 
         if (itr->second.Class != ITEM_CLASS_TRADE_GOODS)
         {
-            bool isNpc   = false;
-            bool isLoot  = false;
-            bool exclude = false;
+            bool isNpc  = NpcItems.find(itr->second.ItemId) != NpcItems.end();
+            bool isLoot = LootItems.find(itr->second.ItemId) != LootItems.end();
 
-            if (NpcItems.find(itr->second.ItemId) != NpcItems.end())
-            {
-                isNpc = true;
+            bool allowed =
+                (isNpc && Vendor_Items) ||
+                (isLoot && Loot_Items) ||
+                (!isNpc && !isLoot && Other_Items);
 
-                if (!Vendor_Items)
-                {
-                    exclude = true;
-                }
-            }
-
-            if (!exclude)
-            {
-                if (LootItems.find(itr->second.ItemId) != LootItems.end())
-                {
-                    isLoot = true;
-
-                    if (!Loot_Items)
-                    {
-                        exclude = true;
-                    }
-                }
-            }
-
-            if (exclude)
+            if (!allowed)
             {
                 continue;
-            }
-
-            if (!Other_Items)
-            {
-                if (!isNpc && !isLoot)
-                {
-                    continue;
-                }
             }
         }
 
