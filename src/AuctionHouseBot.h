@@ -27,6 +27,8 @@
 #include "AuctionHouseBotCommon.h"
 #include "AuctionHouseBotConfig.h"
 
+#include <unordered_map>
+
 struct AuctionEntry;
 class  Player;
 class  WorldSession;
@@ -62,7 +64,7 @@ private:
     uint32 getNofAuctions(AHBConfig* config, AuctionHouseObject* auctionHouse, ObjectGuid guid);
     uint32 getStackCount(AHBConfig* config, uint32 max);
     uint32 getElapsedTime(uint32 timeClass);
-    uint32 getElement(std::set<uint32> set, int index, uint32 botId, uint32 maxDup, AuctionHouseObject* auctionHouse);
+    uint32 getElement(std::set<uint32> set, int index, uint32 maxDup, std::unordered_map<uint32, uint32> const& counts);
 
 public:
     AuctionHouseBot(uint32 account, uint32 id);
