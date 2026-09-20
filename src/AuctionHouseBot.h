@@ -27,6 +27,8 @@
 #include "AuctionHouseBotCommon.h"
 #include "AuctionHouseBotConfig.h"
 
+#include <string>
+
 struct AuctionEntry;
 class  Player;
 class  WorldSession;
@@ -59,6 +61,10 @@ private:
 
     inline uint32 minValue(uint32 a, uint32 b) { return a <= b ? a : b; };
 
+    // Classic temp Player + ObjectAccessor. Returns nullptr if seller GUID is online.
+    Player* AcquireAHBplayer(Player& tempPlayer, bool& addedToAccessor);
+    void ReleaseAHBplayer(Player& tempPlayer, bool addedToAccessor);
+
     uint32 getNofAuctions(AHBConfig* config, AuctionHouseObject* auctionHouse, ObjectGuid guid);
     uint32 getStackCount(AHBConfig* config, uint32 max);
     uint32 getElapsedTime(uint32 timeClass);
@@ -74,6 +80,19 @@ public:
     void Commands(AHBotCommand command, uint32 ahMapID, uint32 col, char* args);
 
     ObjectGuid::LowType GetAHBplayerGUID() { return _id; };
+
+    struct OrderResult
+    {
+        bool success = false;
+        std::string error;
+        std::string itemName;
+        uint32 listedQuantity = 0;
+        uint32 listedStacks = 0;
+        uint64 totalBid = 0;
+        uint64 totalBuyout = 0;
+    };
+
+    OrderResult SellOrderedItem(uint32 itemId, uint32 quantity);
 };
 
 #endif // AUCTION_HOUSE_BOT_H

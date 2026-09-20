@@ -35,6 +35,21 @@
 #        Enable/Disable the part of AHBot that puts items up for auction
 #    Default 0 (disabled)
 #
+#    AuctionHouseBot.WhisperOrders
+#        Allow WhisperOrdersAccount characters to whisper the bot
+#        with "[item link] quantity" to force-list that item.
+#    Default 1 (enabled)
+#
+#    AuctionHouseBot.WhisperOrdersAccount
+#        Account id allowed to place whisper restock orders.
+#        This is the player account (not AuctionHouseBot.Account).
+#    Default 0 (no account may place orders)
+#
+#    AuctionHouseBot.WhisperOrdersReceiverGUID
+#        Character GUID that stays online to receive order whispers.
+#        Must NOT be AuctionHouseBot.GUID (seller must stay offline).
+#    Default 0
+#
 #    AuctionHouseBot.EnableBuyer
 #        Enable/Disable the part of AHBot that buys items from players
 #    Default 0 (disabled)
@@ -105,6 +120,9 @@ AuctionHouseBot.TRACE_SELLER = 0
 AuctionHouseBot.TRACE_BUYER = 0
 
 AuctionHouseBot.EnableSeller = 0
+AuctionHouseBot.WhisperOrders = 1
+AuctionHouseBot.WhisperOrdersAccount = 0
+AuctionHouseBot.WhisperOrdersReceiverGUID = 0
 AuctionHouseBot.EnableBuyer = 0
 AuctionHouseBot.UseBuyPriceForSeller = 0
 AuctionHouseBot.UseBuyPriceForBuyer = 0

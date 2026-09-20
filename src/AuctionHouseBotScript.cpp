@@ -11,9 +11,12 @@
 // This provides the effective startup of the module by istanciating the scripts
 // =============================================================================
 
+void AddAHBotPlayerScripts();
+
 void AddAHBotScripts()
 {
     new AHBot_WorldScript();
     new AHBot_AuctionHouseScript();
     new AHBot_MailScript();
+    AddAHBotPlayerScripts();
 }

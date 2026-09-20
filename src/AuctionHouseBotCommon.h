@@ -103,5 +103,8 @@ enum class AHBotCommand : uint32
 
 extern std::set<uint32>           gBotsId; // Active bots players ids
 extern std::set<AuctionHouseBot*> gBots;   // Active bots
+extern bool                       gWhisperOrders;
+extern uint32                     gWhisperOrdersAccount;  // player account allowed to order
+extern uint32                     gWhisperOrdersReceiver; // online clerk GUID (not AH seller GUID)
 
 #endif // AUCTION_HOUSE_BOT_COMMON_H
